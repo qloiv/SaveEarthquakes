@@ -8,7 +8,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="JupyterTrust" id="99e961d1-1166-4a51-a998-cbb6c86967af" />
   <component name="ProjectId" id="1jSEPMd2syLdYY8Jyxd1AgJhK1f" />
@@ -55,7 +55,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1603789068040</updated>
-      <workItem from="1603789072841" duration="430000" />
+      <workItem from="1603789072841" duration="1141000" />
     </task>
     <servers />
   </component>
@@ -67,5 +67,13 @@
       <screen x="73" y="27" width="1847" height="1053" />
     </state>
     <state x="731" y="223" key="FileChooserDialogImpl/73.27.1847.1053@73.27.1847.1053" timestamp="1603789130915" />
+    <state x="803" y="416" key="Github.ShareDialog" timestamp="1603789559289">
+      <screen x="73" y="27" width="1847" height="1053" />
+    </state>
+    <state x="803" y="416" key="Github.ShareDialog/73.27.1847.1053@73.27.1847.1053" timestamp="1603789559289" />
+    <state x="672" y="187" key="Github.UntrackedFilesDialog" timestamp="1603789570041">
+      <screen x="73" y="27" width="1847" height="1053" />
+    </state>
+    <state x="672" y="187" key="Github.UntrackedFilesDialog/73.27.1847.1053@73.27.1847.1053" timestamp="1603789570040" />
   </component>
 </project>
