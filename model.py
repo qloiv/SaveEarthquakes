@@ -1,11 +1,10 @@
 import torch.nn as nn
-import torch
-import torch.nn.functional as F
-from torch.autograd import Variable
-from torch.nn import Linear, ReLU, MaxPool2d, CrossEntropyLoss, Flatten, Sequential, Conv1d, MaxPool1d, Module, Softmax, \
-    BatchNorm1d, Dropout
-from torch.optim import Adam, SGD
+from torch.backends import cudnn
+from torch.nn import Linear, ReLU, CrossEntropyLoss, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d
+from torch.optim import Adam
 import numpy as np
+from dataset import *
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -64,75 +63,40 @@ class Net(nn.Module):
 catalog_path = "/home/viola/WS2021/Code/Daten/Chile_small/catalog_ma.csv"
 waveform_path = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
 
-# defining the model
-model = Net()
-# defining the optimizer
-optimizer = Adam(model.parameters())
+# CUDA for PyTorch
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if use_cuda else "cpu")
+torch.backends.cudnn.benchmark = True
+
+trainloader, evalloader = get_data_loaders(catalog_path, waveform_path,
+                                           batch_size=64, num_workers=4, shuffle=True, test_run=True)
+net = Net()
+net.to(device)
+optimizer = Adam(net.parameters())
 # defining the loss function
 criterion = CrossEntropyLoss()
-# checking if GPU is available
-if torch.cuda.is_available():
-    model = model.cuda()
-    criterion = criterion.cuda()
+for epoch in range(2):  # loop over the dataset multiple times
 
-print(model)
+    running_loss = 0.0
+    for i, inputs in enumerate(trainloader):
+        waveform = inputs['waveform']
+        label = inputs['label']
+        waveform, label = waveform.to(device), label.to(device)
 
-pick_x = np.load('train_array.npy')[0:800]
-noise_x = np.load('train_noise.npy')[0:800]
-index = np.int64(np.concatenate((np.zeros(noise_x.shape[0]), np.ones(pick_x.shape[0]))))
-train_examples = np.concatenate((noise_x, pick_x))
+        # zero the parameter gradients
+        optimizer.zero_grad()
 
-shuffler = np.random.permutation(len(index))
+        # forward + backward + optimize
+        outputs = net(waveform)
+        loss = criterion(outputs, label)
+        loss.backward()
+        optimizer.step()
 
-train_x = train_examples[shuffler]
-train_y = index[shuffler]
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:  # print every 2000 mini-batches
+            print('[%d, %5d] loss: %.3f' %
+                  (epoch + 1, i + 1, running_loss / 2000))
+            running_loss = 0.0
 
-pick_x_test = np.load('test_array.npy')[0:200]
-noise_x_test = np.load('test_noise.npy')[0:200]
-index_noise = np.int64(np.concatenate((np.zeros(noise_x_test.shape[0])
-                                       , np.ones(pick_x_test.shape[0]))))
-test_examples = np.concatenate((noise_x_test, pick_x_test))
-
-shuffler = np.random.permutation(len(index_noise))
-
-test_x = test_examples[shuffler]
-test_y = index_noise[shuffler]
-# defining the number of epochs
-n_epochs = 5
-# empty list to store training losses
-train_losses = []
-# empty list to store validation losses
-val_losses = []
-# training the model
-for epoch in range(n_epochs):
-    model.train()
-    tr_loss = 0
-    # getting the training set
-    x_train, y_train = torch.from_numpy(train_x), torch.from_numpy(train_y)
-    # getting the validation set
-    x_test, y_test = torch.from_numpy(test_x), torch.from_numpy(test_y)
-    # converting the data into GPU format
-    if torch.cuda.is_available():
-        x_train = x_train.cuda()
-        y_train = y_train.cuda()
-        x_test = x_test.cuda()
-        y_test = y_test.cuda()
-
-    # clearing the Gradients of the model parameters
-    optimizer.zero_grad()
-
-    # prediction for training and validation set
-    output_train = model(x_train)
-    output_test = model(x_test)
-
-    # computing the training and validation loss
-    loss_train = criterion(output_train, y_train)
-    loss_test = criterion(output_test, y_test)
-    train_losses.append(loss_train)
-    val_losses.append(loss_test)
-
-    # computing the updated weights of all the model parameters
-    loss_train.backward()
-    optimizer.step()
-    tr_loss = loss_train.item()
-    print('Epoch : ', epoch + 1, '\t', 'loss :', loss_test, 'train_loss', loss_train)
+print('Finished Training')
