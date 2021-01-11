@@ -32,10 +32,25 @@ class SeismoDataset(Dataset):
 
     def __init__(self, catalog_path, waveform_path, split, time_before=2, time_after=2, test_run=False):
         data = pd.read_csv(catalog_path)
+#        print(len(data))
         data = data[data['STATION'] != 'LVC']
         events = sorted(data['EVENT'].unique())
         data = data[data['EVENT'].isin(events)]
-        data = filter_missing_files(data, events, waveform_path)
+        print(len(data))
+        misses = 0
+        for event in events:
+            #found = False
+            for waveform_paths in waveform_path:
+                path = os.path.join(waveform_paths, f'{event}.mseed')
+                if not os.path.isfile(path):
+                    if event in events:
+                        events.remove(event)
+                        misses += 1
+#                        print(misses)
+        if misses:
+            print(f'Could not find {misses} files')
+            data = data[data['EVENT'].isin(events)]
+        print(len(data))
         if split is not None:
             if split in ['TRAIN', 'DEV', 'TEST']:
                 data = data[data['SPLIT'] == split]
@@ -45,6 +60,7 @@ class SeismoDataset(Dataset):
         self.waveform_path = waveform_path
         self.time_before = time_before
         self.time_after = time_after
+        self.idx_changes = 0
 
     def __len__(self):
         return len(self.data) * 2  # because the noise examples are generated from the same data
@@ -61,16 +77,18 @@ class SeismoDataset(Dataset):
                 waveform = obspy.read(os.path.join(self.waveform_path, f'{event}.mseed'))
                 station_stream = waveform.select(station=station, channel='HH*')  # high frequency
                 station_stream = station_stream.slice(starttime=UTCDateTime(time), endtime=UTCDateTime(time + 4))
+                station_stream.detrend().normalize()
 
             else:
                 label = np.int64(1)
-                event, station, p_pick, = self.data.iloc[idx][['EVENT', 'STATION', 'P_PICK']]
+                event, station, p_pick = self.data.iloc[idx][['EVENT', 'STATION', 'P_PICK']]
                 waveform = obspy.read(os.path.join(self.waveform_path, f'{event}.mseed'))
 
                 start_time = UTCDateTime(p_pick - self.time_before)
                 end_time = UTCDateTime(p_pick + self.time_after)
                 station_stream = waveform.select(station=station, channel='HH*')  # high frequency
                 station_stream = station_stream.slice(starttime=start_time, endtime=end_time)
+                station_stream.detrend().normalize()
 
             if station_stream:
                 trace_z = station_stream[0]
@@ -81,11 +99,12 @@ class SeismoDataset(Dataset):
                 if (np.any(waveform_np) is None) or (label is None):
                     print(waveform_np, label)
                 sample = {'waveform': waveform_np, 'label': label}
+#                print(self.idx_changes)
                 return sample
             else:
                 rng = np.random.default_rng()
                 idx = rng.integers(0, len(self.data))
-                print('change idx to ', idx)
+                self.idx_changes = self.idx_changes+1
                 # TODO delete for server runs
                 # really unfortunate hack, because in the small dataset there exist stations which are not listed
                 # in the waveform streams
