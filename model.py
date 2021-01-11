@@ -25,7 +25,8 @@ net.to(device)
 optimizer = Adam(net.parameters())
 # defining the loss function
 criterion = CrossEntropyLoss()
-for epoch in range(2):  # loop over the dataset multiple times
+print("Start Training")
+for epoch in range(10):  # loop over the dataset multiple times
 
     running_loss = 0.0
     for i, inputs in enumerate(trainloader):
@@ -44,9 +45,9 @@ for epoch in range(2):  # loop over the dataset multiple times
 
         # print statistics
         running_loss += loss.item()
-        if i % 20 == 19:  # print every 2000 mini-batches
+        if i % 200 == 199:  # print every 2000 mini-batches
             print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 20))
+                  (epoch + 1, i + 1, running_loss / 200))
             running_loss = 0.0
 
 print('Finished Training')
@@ -57,6 +58,7 @@ with torch.no_grad():
     for inputs in testloader:
         waveform = inputs['waveform']
         label = inputs['label']
+        waveform, label = waveform.to(device), label.to(device)
         outputs = net(waveform)
         _, predicted = torch.max(outputs.data, 1)
         total += label.size(0)

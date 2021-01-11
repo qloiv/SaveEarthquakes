@@ -31,25 +31,36 @@ def filter_missing_files(data, events, input_dirs):
 class SeismoDataset(Dataset):
 
     def __init__(self, catalog_path, waveform_path, split, time_before=2, time_after=2, test_run=False):
+        #         data = pd.read_csv(catalog_path)
+        # #        print(len(data))
+        #         data = data[data['STATION'] != 'LVC']
+        #         events = sorted(data['EVENT'].unique())
+        #         data = data[data['EVENT'].isin(events)]
+        #         print(len(data))
+        #         misses = 0
+        #         for event in events:
+        #             #found = False
+        #             for waveform_paths in tqdm(waveform_path):
+        #                 path = os.path.join(waveform_paths, f'{event}.mseed')
+        #                 if not os.path.isfile(path):
+        #                     if event in events:
+        #                         events.remove(event)
+        #                         misses += 1
+        # #                        print(misses)
+        #         if misses:
+        #             print(f'Could not find {misses} files')
+        #             data = data[data['EVENT'].isin(events)]
+        #         print(len(data))
         data = pd.read_csv(catalog_path)
-#        print(len(data))
+        print(len(data))
         data = data[data['STATION'] != 'LVC']
         events = sorted(data['EVENT'].unique())
-        data = data[data['EVENT'].isin(events)]
-        print(len(data))
-        misses = 0
-        for event in events:
-            #found = False
-            for waveform_paths in waveform_path:
-                path = os.path.join(waveform_paths, f'{event}.mseed')
-                if not os.path.isfile(path):
-                    if event in events:
-                        events.remove(event)
-                        misses += 1
-#                        print(misses)
-        if misses:
-            print(f'Could not find {misses} files')
-            data = data[data['EVENT'].isin(events)]
+        waves = []
+        for file in os.listdir(waveform_path):
+            if file.endswith(".mseed"):
+                waves.append(file.strip('.mseed'))
+        intersect = list(set(waves).intersection(set(events)))
+        data = data[data['EVENT'].isin(intersect)]
         print(len(data))
         if split is not None:
             if split in ['TRAIN', 'DEV', 'TEST']:
@@ -99,12 +110,12 @@ class SeismoDataset(Dataset):
                 if (np.any(waveform_np) is None) or (label is None):
                     print(waveform_np, label)
                 sample = {'waveform': waveform_np, 'label': label}
-#                print(self.idx_changes)
+                #                print(self.idx_changes)
                 return sample
             else:
                 rng = np.random.default_rng()
                 idx = rng.integers(0, len(self.data))
-                self.idx_changes = self.idx_changes+1
+                self.idx_changes = self.idx_changes + 1
                 # TODO delete for server runs
                 # really unfortunate hack, because in the small dataset there exist stations which are not listed
                 # in the waveform streams
