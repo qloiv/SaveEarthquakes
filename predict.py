@@ -73,6 +73,7 @@ outs = np.zeros(len(out_times))
 for i in range(0, len(out_times) - 4):
     station_stream = waveform.select(station=station, channel='HH*')  # reload
     window = station_stream.slice(starttime=out_times[i], endtime=out_times[i] + 4)
+    window.filter('highpass', freq=2, df=100, zerophase=True)
     window.detrend().normalize()
 
     # for windowed_st in station_stream.slide(window_length=sequence_length, step=1):
