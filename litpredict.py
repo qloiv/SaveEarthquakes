@@ -49,7 +49,7 @@ station_stream.plot()
 # print now maybe with highlight on the P Pick
 # maybe slice out with beginning on start time?
 model = LitNetwork.load_from_checkpoint(
-    checkpoint_path="/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_2/checkpoints/epoch=20-step=1910.ckpt",
+    checkpoint_path="/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
 
 )
 model.freeze()
