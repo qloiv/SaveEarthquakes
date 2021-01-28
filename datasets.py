@@ -117,9 +117,10 @@ class SeismoDataset(Dataset):
                 waveform = obspy.read(
                     os.path.join(self.waveform_path, f"{event}.mseed")
                 )
-
-                start_time = UTCDateTime(p_pick - self.time_before)
-                end_time = UTCDateTime(p_pick + self.time_after)
+                seq_len = self.time_before + self.time_after
+                random_point = np.random.uniform(0, 4)
+                start_time = UTCDateTime(p_pick - random_point)
+                end_time = UTCDateTime(p_pick + (seq_len - random_point))
                 station_stream = waveform.select(
                     station=station, channel="HH*"
                 )  # high frequency
@@ -127,7 +128,6 @@ class SeismoDataset(Dataset):
                     starttime=start_time, endtime=end_time
                 )
                 station_stream.filter("highpass", freq=2, zerophase=True)
-
                 station_stream.detrend().normalize()
 
             if station_stream:
