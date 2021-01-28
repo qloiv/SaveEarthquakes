@@ -1,31 +1,13 @@
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.core.lightning import LightningModule
-from torch.nn import (
-    Linear,
-    ReLU,
-    Flatten,
-    Sequential,
-    Conv1d,
-    MaxPool1d,
-    BatchNorm1d,
-    CrossEntropyLoss,
-)
-
-from load import SeismoDataset, DataLoader
-
-catalog_path = "/home/viola/WS2021/Code/Daten/Chile_small/catalog_ma.csv"
-waveform_path = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-model_path = "/home/viola/WS2021/Code/Models"
-criterion = CrossEntropyLoss()
+from torch.nn import CrossEntropyLoss
+from torch.nn import Linear, ReLU, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d
 
 
-class Net(LightningModule):
+class LitNetwork(LightningModule):
     def __init__(self):
         super().__init__()
-        self.test_acc = pl.metrics.Accuracy()
-        self.valid_acc = pl.metrics.Accuracy()
-
         self.cnn_layer1 = Sequential(
             Conv1d(3, 32, kernel_size=21, stride=1, padding=10),
             # pytorch hat noch keine padding_mode = same implementation
@@ -64,6 +46,10 @@ class Net(LightningModule):
             ReLU(),
         )
 
+        self.test_acc = pl.metrics.Accuracy()
+        self.train_acc = pl.metrics.Accuracy()
+        self.val_acc = pl.metrics.Accuracy()
+
     def forward(self, x):
         x = self.cnn_layer1(x)
         x = self.cnn_layer2(x)
@@ -76,7 +62,11 @@ class Net(LightningModule):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform)
+        criterion = CrossEntropyLoss()
         loss = criterion(outputs, label)
+        _, predicted = torch.max(outputs.data, 1)
+        self.train_acc(predicted, label)
+        self.log("train_acc", self.train_acc)
         self.log("train_loss", loss)
         return loss
 
@@ -84,82 +74,25 @@ class Net(LightningModule):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform)
+        criterion = CrossEntropyLoss()
         loss = criterion(outputs, label)
         self.log("val_loss", loss)
+        self.log("val_acc", self.val_acc)
+
+    def on_validation_epoch_end(self):
+        self.log("val_acc", self.val_acc)
 
     def test_step(self, inputs, inputs_idx):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform)
+        criterion = CrossEntropyLoss()
         loss = criterion(outputs, label)
         _, predicted = torch.max(outputs.data, 1)
         self.test_acc(predicted, label)
-        self.log('test_acc', self.test_acc)
-
-    #        self.log("test_loss", loss)
+        self.log("test_acc", self.test_acc)
+        self.log("test_loss", loss)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
         return optimizer
-
-    # TODO maybe put something in prepare data def prepare_data(self):
-    def train_dataloader(self):
-        batch_size = 64
-        num_workers = 4
-        shuffle = True
-        test_run = False
-
-        if test_run:
-            num_workers = 1
-
-        training_data = SeismoDataset(
-            catalog_path=catalog_path,
-            waveform_path=waveform_path,
-            split="TRAIN",
-            test_run=test_run,
-        )
-        training_loader = DataLoader(
-            training_data,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            shuffle=shuffle,
-        )
-        return training_loader
-
-    def val_dataloader(self):
-        batch_size = 64
-        num_workers = 4
-        test_run = False
-        validation_data = SeismoDataset(
-            catalog_path=catalog_path,
-            waveform_path=waveform_path,
-            split="DEV",
-            test_run=test_run,
-        )
-
-        validation_loader = DataLoader(
-            validation_data,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            shuffle=False,
-        )
-        return validation_loader
-
-    def test_dataloader(self):
-        batch_size = 64
-        num_workers = 4
-        test_run = False
-        if test_run:
-            num_workers = 1
-        test_data = SeismoDataset(
-            catalog_path=catalog_path,
-            waveform_path=waveform_path,
-            split="TEST",
-            test_run=test_run,
-        )
-
-        test_loader = DataLoader(
-            test_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
-        )
-
-        return test_loader
