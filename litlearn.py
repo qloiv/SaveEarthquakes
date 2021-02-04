@@ -147,7 +147,7 @@ def predict(catalog_path, waveform_path, checkpoint_path):
     ax[3].xaxis_date()
     fig.autofmt_xdate()
     plt.show()
-    plt.savefig()
+    plt.savefig("current_plot")
 
 
 if __name__ == '__main__':

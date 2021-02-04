@@ -141,30 +141,43 @@ class SeismoDataset(Dataset):
             if len(station_stream) >=3:
                 for trace in station_stream:
                     resample_trace(trace, sampling_rate=100)
-                trace_z = np.array(station_stream.select(component="Z"))[0]
-                trace_n = np.array(station_stream.select(component="N"))[0]
-                trace_e = np.array(station_stream.select(component="E"))[0]
-                #print(trace_z.shape)
-                traces = np.float32(np.stack((trace_z, trace_n, trace_e)))
-                #print(traces.shape)
-                waveform_np = np.squeeze(traces) #remove dummy dimension (3,1,401)
-                #print(waveform_np.shape)
-                if waveform_np.shape == (3,401):
-                    waveform_np = waveform_np[:, 0:-1]
-                else:
-                    print(waveform_np.shape)
+                trace_z = np.array(station_stream.select(component="Z"))
+                trace_n = np.array(station_stream.select(component="N"))
+                trace_e = np.array(station_stream.select(component="E"))
+                trace_z = trace_z[0]
+                trace_z = trace_z[:400]
+                trace_n = trace_n[0]
+                trace_n = trace_n[:400]
+                trace_e = trace_e[0]
+                trace_e = trace_e[:400]
+                waveform_np = np.float32(np.stack((trace_z, trace_n, trace_e)))
+                # print(traces.shape)
+                # waveform_np = np.squeeze(traces) #remove dummy dimension (3,1,401)
+                # print(waveform_np.shape)
                 # because I want a length of 400, not 401, I leave out the last element
-                if (np.any(waveform_np) is None) or (label is None):
-                    print(waveform_np, label)
-                sample = {"waveform": waveform_np, "label": label}
-                #                print(self.idx_changes)
-                return sample
+                if waveform_np.shape == (3, 400):
+                    if (np.any(waveform_np) is None) or (label is None):
+                        print(waveform_np, label)
+                    sample = {"waveform": waveform_np, "label": label}
+                    #                print(self.idx_changes)
+                    return sample
+                else:
+                    print("waveform does not have the right shape, instead:", waveform_np.shape)
+                    rng = np.random.default_rng()
+                    idx = rng.integers(0, len(self.data))
+                    self.idx_changes = self.idx_changes + 1
+                    if (self.idx_changes / (len(self.data) * 2)) % 2 == 0:
+                        print("station missing in event  stream: ", self.idx_changes, 'percentage: ',
+                              self.idx_changes / len(self.data))
+                # really unfortunate hack, because in the small dataset there exist stations which are not listed
+                # in the waveform streams
             else:
                 rng = np.random.default_rng()
                 idx = rng.integers(0, len(self.data))
                 self.idx_changes = self.idx_changes + 1
                 if (self.idx_changes/(len(self.data)*2)) %2 == 0:
-                    print("station missing in event  stream: ",self.idx_changes, 'percentage: ', self.idx_changes/len(self.data))
+                    print("station missing in event stream: ", self.idx_changes, 'percentage: ',
+                          self.idx_changes / len(self.data))
                 # really unfortunate hack, because in the small dataset there exist stations which are not listed
                 # in the waveform streams
 
