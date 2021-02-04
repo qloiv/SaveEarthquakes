@@ -28,6 +28,14 @@ def filter_missing_files(data, events, input_dirs):
     return data
 
 
+def resample_trace(trace, sampling_rate):
+    if trace.stats.sampling_rate == sampling_rate:
+        return
+    if trace.stats.sampling_rate % sampling_rate == 0:
+        trace.decimate(int(trace.stats.sampling_rate / sampling_rate))
+    else:
+        trace.resample(sampling_rate)
+
 class SeismoDataset(Dataset):
     def __init__(
             self,
@@ -130,11 +138,21 @@ class SeismoDataset(Dataset):
                 station_stream.filter("highpass", freq=2, zerophase=True)
                 station_stream.detrend().normalize()
 
-            if station_stream:
-                trace_z = station_stream[0]
-                trace_n = station_stream[1]
-                trace_e = station_stream[2]
-                waveform_np = np.float32(np.stack((trace_z, trace_n, trace_e))[:, 0:-1])
+            if len(station_stream) >=3:
+                for trace in station_stream:
+                    resample_trace(trace, sampling_rate=100)
+                trace_z = np.array(station_stream.select(component="Z"))[0]
+                trace_n = np.array(station_stream.select(component="N"))[0]
+                trace_e = np.array(station_stream.select(component="E"))[0]
+                #print(trace_z.shape)
+                traces = np.float32(np.stack((trace_z, trace_n, trace_e)))
+                #print(traces.shape)
+                waveform_np = np.squeeze(traces) #remove dummy dimension (3,1,401)
+                #print(waveform_np.shape)
+                if waveform_np.shape == (3,401):
+                    waveform_np = waveform_np[:, 0:-1]
+                else:
+                    print(waveform_np.shape)
                 # because I want a length of 400, not 401, I leave out the last element
                 if (np.any(waveform_np) is None) or (label is None):
                     print(waveform_np, label)
@@ -145,7 +163,8 @@ class SeismoDataset(Dataset):
                 rng = np.random.default_rng()
                 idx = rng.integers(0, len(self.data))
                 self.idx_changes = self.idx_changes + 1
-                # TODO delete for server runs
+                if (self.idx_changes/(len(self.data)*2)) %2 == 0:
+                    print("station missing in event  stream: ",self.idx_changes, 'percentage: ', self.idx_changes/len(self.data))
                 # really unfortunate hack, because in the small dataset there exist stations which are not listed
                 # in the waveform streams
 

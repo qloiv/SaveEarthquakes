@@ -32,7 +32,7 @@ def learn(catalog_path, waveform_path, model_path):
     dm = LitDataModule(catalog_path=catalog_path, waveform_path=waveform_path)
     logger = TensorBoardLogger("tb_logs", name="my_model")
     trainer = pl.Trainer(
-        gpus=1,
+        gpus=-1,
         logger=logger,
     )
     trainer.fit(network, datamodule=dm)
