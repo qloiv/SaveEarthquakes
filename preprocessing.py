@@ -96,13 +96,8 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
             station=station, channel="HH*"
         )  # HH = high frequency
         slice_length = 40
-        # P Pick Zeit - 10 Sekunden. Falls das zu kurz ist, erstmal rauswerfen, weil ich ja noise example brauche.
-        # Könnte man aber auch noch ändern.
+        # P Pick Zeit - 10 Sekunden. Falls das zu kurz ist, ist der gesamte Trace zu kurz und fliegt dann später mit raus.
 
-        # if UTCDateTime(p_pick - 8) > UTCDateTime(time):  # angenommen time ist die startzeit
-        #    short_pick = short_pick+1
-        # print("Time before p pick is to short, percentage: ", short_pick/len(data))
-        #    continue
 
         station_stream = station_stream.slice(
             starttime=UTCDateTime(p_pick - 10), endtime=UTCDateTime(p_pick + 30)
@@ -172,6 +167,7 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
     )
 
 
+preprocess(cp, wp, csvp, hp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)

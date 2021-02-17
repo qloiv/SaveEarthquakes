@@ -18,18 +18,20 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from litdatamodule import LitDataModule
 from litnetwork import LitNetwork
 
+cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
+mp = "/home/viola/WS2021/Code/Models"
 
-# catalog_path = "/home/viola/WS2021/Code/Daten/Chile_small/catalog_ma.csv"
-# waveform_path = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-# model_path = "/home/viola/WS2021/Code/Models"
+
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
 # hparams_file = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/hparams.yaml",
 # map_location = None,
 
 
-def learn(catalog_path, waveform_path, model_path):
+def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
-    dm = LitDataModule(catalog_path=catalog_path, waveform_path=waveform_path)
+    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)
     logger = TensorBoardLogger("tb_logs", name="my_model")
     trainer = pl.Trainer(
         gpus=-1,
@@ -150,11 +152,12 @@ def predict(catalog_path, waveform_path, checkpoint_path):
     plt.savefig("current_plot")
 
 
+learn(cp, hp, mp)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)
     parser.add_argument('--catalog_path', type=str)
-    parser.add_argument('--waveform_path', type=str)
+    parser.add_argument('--hdf5_path', type=str)
     parser.add_argument('--model_path', type=str)
     parser.add_argument('--checkpoint_path', type=str)
     parser.add_argument('--hparams_file', type=str)
@@ -163,7 +166,7 @@ if __name__ == '__main__':
 
     if action == 'learn':
         learn(catalog_path=args.catalog_path,
-              waveform_path=args.waveform_path,
+              hdf5_path=args.hdf5_path,
               model_path=args.model_path,
               )
     if action == 'test':

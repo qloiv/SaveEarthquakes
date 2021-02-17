@@ -7,11 +7,11 @@ from datasets import SeismoDataset, DataLoader
 
 
 class LitDataModule(LightningDataModule):
-    def __init__(self, catalog_path, waveform_path):
+    def __init__(self, catalog_path, hdf5_path):
         super().__init__()
         self.criterion = CrossEntropyLoss()
         self.catalog_path = catalog_path
-        self.waveform_path = waveform_path
+        self.hdf5_path = hdf5_path
 
     # TODO some dataset logic can be put into the datamodule, ie extracting data from the catalogue
 
@@ -26,7 +26,7 @@ class LitDataModule(LightningDataModule):
 
         training_data = SeismoDataset(
             catalog_path=self.catalog_path,
-            waveform_path=self.waveform_path,
+            hdf5_path=self.hdf5_path,
             split="TRAIN",
             test_run=test_run,
         )
@@ -44,7 +44,7 @@ class LitDataModule(LightningDataModule):
         test_run = False
         validation_data = SeismoDataset(
             catalog_path=self.catalog_path,
-            waveform_path=self.waveform_path,
+            hdf5_path=self.hdf5_path,
             split="DEV",
             test_run=test_run,
         )
@@ -65,7 +65,7 @@ class LitDataModule(LightningDataModule):
             num_workers = 1
         test_data = SeismoDataset(
             catalog_path=self.catalog_path,
-            waveform_path=self.waveform_path,
+            hdf5_path=self.hdf5_path,
             split="TEST",
             test_run=test_run,
         )
