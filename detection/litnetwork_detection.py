@@ -76,6 +76,8 @@ class LitNetwork(LightningModule):
         outputs = self(waveform)
         criterion = CrossEntropyLoss()
         loss = criterion(outputs, label)
+        _, predicted = torch.max(outputs.data, 1)
+        self.val_acc(predicted, label)
         self.log("val_loss", loss)
         self.log("val_acc", self.val_acc)
 

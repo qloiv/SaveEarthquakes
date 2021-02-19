@@ -37,7 +37,7 @@ def resample_trace(trace, sampling_rate):
         trace.resample(sampling_rate)
 
 
-class SeismoDataset(Dataset):
+class DetectionDataset(Dataset):
     def __init__(
             self,
             catalog_path,
@@ -53,7 +53,7 @@ class SeismoDataset(Dataset):
         catalog = pd.read_csv(catalog_path)
         self.catalog = catalog[catalog["SPLIT"] == split]
         self.sampling_rate = 100
-        self.p_pick = 1001
+        self.p_pick = 3001
         self.split = str.lower(split) + "_files"
         self.time_before = time_before * self.sampling_rate
         self.time_after = time_after * self.sampling_rate
@@ -115,13 +115,13 @@ def get_data_loaders(
     if test_run:
         num_workers = 1
 
-    training_data = SeismoDataset(
+    training_data = DetectionDataset(
         catalog_path=catalog_path,
         hdf5_path=hdf5_path,
         split="TRAIN",
         test_run=test_run,
     )
-    validation_data = SeismoDataset(
+    validation_data = DetectionDataset(
         catalog_path=catalog_path,
         hdf5_path=hdf5_path,
         split="DEV",
@@ -143,7 +143,7 @@ def get_test_loader(
 ):
     if test_run:
         num_workers = 1
-    test_data = SeismoDataset(
+    test_data = DetectionDataset(
         catalog_path=catalog_path,
         hdf5_path=hdf5_path,
         split="TEST",

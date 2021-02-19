@@ -3,7 +3,7 @@ from torch.nn import (
     CrossEntropyLoss,
 )
 
-from datasets import SeismoDataset, DataLoader
+from datasets_detection import DetectionDataset, DataLoader
 
 
 class LitDataModule(LightningDataModule):
@@ -24,7 +24,7 @@ class LitDataModule(LightningDataModule):
         if test_run:
             num_workers = 1
 
-        training_data = SeismoDataset(
+        training_data = DetectionDataset(
             catalog_path=self.catalog_path,
             hdf5_path=self.hdf5_path,
             split="TRAIN",
@@ -42,7 +42,7 @@ class LitDataModule(LightningDataModule):
         batch_size = 64
         num_workers = 4
         test_run = False
-        validation_data = SeismoDataset(
+        validation_data = DetectionDataset(
             catalog_path=self.catalog_path,
             hdf5_path=self.hdf5_path,
             split="DEV",
@@ -63,7 +63,7 @@ class LitDataModule(LightningDataModule):
         test_run = False
         if test_run:
             num_workers = 1
-        test_data = SeismoDataset(
+        test_data = DetectionDataset(
             catalog_path=self.catalog_path,
             hdf5_path=self.hdf5_path,
             split="TEST",

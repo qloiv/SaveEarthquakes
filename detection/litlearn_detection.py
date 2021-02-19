@@ -15,8 +15,8 @@ from matplotlib.dates import date2num
 from obspy import UTCDateTime
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from litdatamodule import LitDataModule
-from litnetwork import LitNetwork
+from litdatamodule_detection import LitDataModule
+from litnetwork_detection import LitNetwork
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
@@ -32,7 +32,7 @@ mp = "/home/viola/WS2021/Code/Models"
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
     dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)
-    logger = TensorBoardLogger("tb_logs", name="my_model")
+    logger = TensorBoardLogger("../tb_logs", name="detection")
     trainer = pl.Trainer(
         gpus=-1,
         logger=logger,
