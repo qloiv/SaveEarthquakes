@@ -100,13 +100,13 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
 
 
         station_stream = station_stream.slice(
-            starttime=UTCDateTime(p_pick - 10), endtime=UTCDateTime(p_pick + 30)
+            starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30)
         )
 
         if len(station_stream) < 3:
             stream_miss = stream_miss + 1
             # print("Percentage of data left because stream or trace is missing from the waveform file: ",(original_length - stream_miss) / original_length)
-            new_frame.drop(current_row[0], inplace=True)  # is index of dataframe
+            new_frame.drop(current_row.name, inplace=True)  # is index of dataframe
             continue
 
         for trace in station_stream:
@@ -115,13 +115,13 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
         trace_n = np.array(station_stream.select(component="N"))
         trace_e = np.array(station_stream.select(component="E"))
         if (
-                np.shape(trace_z) != (1, 4001)
-                or np.shape(trace_e) != (1, 4001)
-                or np.shape(trace_n) != (1, 4001)
+                np.shape(trace_z) != (1, 6001)
+                or np.shape(trace_e) != (1, 6001)
+                or np.shape(trace_n) != (1, 6001)
         ):
             trace_miss = trace_miss + 1
             # print("Percentage of data left because trace shape was wrong",(original_length - trace_miss) / original_length,)
-            new_frame.drop(current_row[0], inplace=True)
+            new_frame.drop(current_row.name, inplace=True)
             continue
 
         waveform_np = np.squeeze(np.float32(np.stack((trace_z, trace_n, trace_e))))
@@ -134,20 +134,10 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
             dev_hf.create_dataset(key, data=waveform_np)
         else:
             print("Not a valid split value")
-            new_frame.drop(current_row[0], inplace=True)
+            new_frame.drop(current_row.name, inplace=True)
             continue
 
     hf.close()
-    grouped_frame = (new_frame.groupby("SPLIT").count())["EVENT"]
-    print(
-        "There are",
-        grouped_frame["TRAIN"],
-        "train,",
-        grouped_frame["TEST"],
-        "test and",
-        grouped_frame["DEV"],
-        "dev examples.\n",
-    )
     new_frame.to_csv(csv_path)
     print(
         "After having a look at every trace ",
@@ -164,6 +154,16 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
     print(
         trace_miss / original_length,
         "% data was sorted out because the trace shape was wrong.",
+    )
+    grouped_frame = (new_frame.groupby("SPLIT").count())["EVENT"]
+    print(
+        "There are",
+        grouped_frame["TRAIN"],
+        "train,",
+        grouped_frame["TEST"],
+        "test and",
+        grouped_frame["DEV"],
+        "dev examples.\n",
     )
 
 
