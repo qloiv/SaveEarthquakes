@@ -66,8 +66,8 @@ class DetectionDataset(Dataset):
         )  # because the noise examples are generated from the same data
 
     def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
+        #if torch.is_tensor(idx):
+        #    idx = idx.tolist()
         if self.h5data is None:
             self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
         while True:
@@ -107,7 +107,7 @@ class DetectionDataset(Dataset):
 def get_data_loaders(
         catalog_path,
         hdf5_path,
-        batch_size=64,
+        batch_size=2048,
         num_workers=4,
         shuffle=True,
         test_run=False,
@@ -139,7 +139,7 @@ def get_data_loaders(
 
 
 def get_test_loader(
-        catalog_path, hdf5_path, batch_size=64, num_workers=4, test_run=False
+        catalog_path, hdf5_path, batch_size=2048, num_workers=4, test_run=False
 ):
     if test_run:
         num_workers = 1

@@ -34,16 +34,17 @@ def learn(catalog_path, hdf5_path, model_path):
     dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)
     logger = TensorBoardLogger("../tb_logs", name="detection")
     trainer = pl.Trainer(
-        gpus=-1,
+        gpus=[0],
         logger=logger,
+        #precision=16,
     )
     trainer.fit(network, datamodule=dm)
 
     trainer.test()
 
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    path = "GPD_net_" + str(now) + ".pth"
-    torch.save(network.state_dict(), os.path.join(model_path, path))
+    #now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    #path = "GPD_net_" + str(now) + ".pth"
+    #torch.save(network.state_dict(), os.path.join(model_path, path))
 
 
 def test(catalog_path, waveform_path, checkpoint_path, hparams_file):
@@ -54,7 +55,7 @@ def test(catalog_path, waveform_path, checkpoint_path, hparams_file):
     )
     dm = LitDataModule(catalog_path, waveform_path)
     # init trainer with whatever options
-    trainer = pl.Trainer(gpus=1)
+    trainer = pl.Trainer(gpus=[0])
 
     # test (pass in the model)
     trainer.test(model, datamodule=dm)
@@ -152,7 +153,7 @@ def predict(catalog_path, waveform_path, checkpoint_path):
     plt.savefig("current_plot")
 
 
-learn(cp, hp, mp)
+#learn(cp, hp, mp)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)
