@@ -29,6 +29,16 @@ mp = "/home/viola/WS2021/Code/Models"
 # map_location = None,
 
 
+def normalize_stream(stream, global_max = False):
+    if global_max is True:
+        ma = np.abs(stream).max()
+        stream /= ma
+    else:
+        for tr in stream:
+            ma_tr = np.abs(tr).max()
+            tr /= ma_tr
+    return stream
+
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
     dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)

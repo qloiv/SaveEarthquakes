@@ -36,6 +36,16 @@ def resample_trace(trace, sampling_rate):
     else:
         trace.resample(sampling_rate)
 
+def normalize_stream(stream, global_max = False):
+    if global_max is True:
+        ma = np.abs(stream).max()
+        stream /= ma
+    else:
+        for tr in stream:
+            ma_tr = np.abs(tr).max()
+            tr /= ma_tr
+    return stream
+
 
 class DetectionDataset(Dataset):
     def __init__(
@@ -99,7 +109,7 @@ class DetectionDataset(Dataset):
                 np.float32
             )
             station_stream = signal.detrend(station_stream)
-            station_stream = signal.normalize(station_stream, 1)[0]
+            station_stream = normalize_stream(station_stream)
             sample = {"waveform": station_stream, "label": label}
             return sample
 
