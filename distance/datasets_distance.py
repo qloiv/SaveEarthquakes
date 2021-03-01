@@ -5,7 +5,6 @@ import os
 import h5py
 import numpy as np
 import pandas as pd
-import torch
 from scipy import signal
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset, DataLoader
@@ -83,8 +82,8 @@ class DistanceDataset(Dataset):
         )
 
     def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
+        # if torch.is_tensor(idx):
+        #    idx = idx.tolist()
         if self.h5data is None:
             self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
 
@@ -99,7 +98,6 @@ class DistanceDataset(Dataset):
 
         ts_dist = self.scaler.transform(distance.reshape(1, -1))
         label = np.float32(ts_dist.squeeze())
-        assert 0 <= label <= 1, str(label)
 
         # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
         waveform = np.array(self.h5data.get(event + "/" + station))
