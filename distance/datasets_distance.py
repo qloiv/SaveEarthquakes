@@ -37,6 +37,15 @@ def resample_trace(trace, sampling_rate):
     else:
         trace.resample(sampling_rate)
 
+def normalize_stream(stream, global_max = False):
+    if global_max is True:
+        ma = np.abs(stream).max()
+        stream /= ma
+    else:
+        for tr in stream:
+            ma_tr = np.abs(tr).max()
+            tr /= ma_tr
+    return stream
 
 class DistanceDataset(Dataset):
     def __init__(
@@ -44,8 +53,8 @@ class DistanceDataset(Dataset):
             catalog_path,
             hdf5_path,
             split,
-            time_before=10,
-            time_after=10,
+            time_before=5,
+            time_after=15,
             test_run=False,
     ):
         self.split_key = str.lower(split) + "_files"
@@ -54,9 +63,9 @@ class DistanceDataset(Dataset):
 
         catalog = pd.read_csv(catalog_path)
         train = catalog[catalog["SPLIT"] == "TRAIN"]
-        dist = np.append(np.array(train["DIST"]), [1, 500000])
+        dist = np.append(np.array(train["DIST"]), [1, 600000])
 
-        # # compute best lambda on train set
+        # compute best lambda on train set
         # l, opt_lambda = stats.boxcox(dist)
         # self.lb = opt_lambda
         # transformed = stats.boxcox(dist,opt_lambda)
@@ -65,7 +74,7 @@ class DistanceDataset(Dataset):
         # self.scaler.fit(transformed.reshape(-1,1))
         # t_dist = self.scaler.transform(transformed.reshape(-1,1))
 
-        self.scaler = MinMaxScaler()
+        self.scaler = MinMaxScaler(feature_range = (-1,1))
         self.scaler.fit(dist.reshape(-1, 1))
         t_dist = self.scaler.transform(dist.reshape(-1, 1))
 
@@ -83,8 +92,6 @@ class DistanceDataset(Dataset):
         )
 
     def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
         if self.h5data is None:
             self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
 
@@ -99,7 +106,7 @@ class DistanceDataset(Dataset):
 
         ts_dist = self.scaler.transform(distance.reshape(1, -1))
         label = np.float32(ts_dist.squeeze())
-        assert 0 <= label <= 1, str(label)
+        #assert 0 <= label <= 1, str(label)
 
         # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
         waveform = np.array(self.h5data.get(event + "/" + station))
@@ -114,7 +121,7 @@ class DistanceDataset(Dataset):
             np.float32
         )
         station_stream = signal.detrend(station_stream)
-        station_stream = signal.normalize(station_stream, 1)[0]
+        station_stream = normalize_stream(station_stream)
         sample = {"waveform": station_stream, "label": label}
         return sample
 
@@ -122,7 +129,7 @@ class DistanceDataset(Dataset):
 def get_data_loaders(
         catalog_path,
         hdf5_path,
-        batch_size=64,
+        batch_size=2048,
         num_workers=4,
         shuffle=True,
         test_run=False,
@@ -154,7 +161,7 @@ def get_data_loaders(
 
 
 def get_test_loader(
-        catalog_path, hdf5_path, batch_size=64, num_workers=4, test_run=False
+        catalog_path, hdf5_path, batch_size=2048, num_workers=4, test_run=False
 ):
     if test_run:
         num_workers = 1
