@@ -49,13 +49,13 @@ def learn(catalog_path, hdf5_path, model_path):
     # torch.save(network.state_dict(), os.path.join(model_path, path))
 
 
-def test(catalog_path, waveform_path, checkpoint_path, hparams_file):
+def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     model = LitNetwork.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
         hparams_file=hparams_file,
         map_location=None,
     )
-    dm = LitDataModule(catalog_path, waveform_path)
+    dm = LitDataModule(catalog_path, hdf5_path)
     # init trainer with whatever options
     trainer = pl.Trainer(gpus=[0])
 
@@ -140,7 +140,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO Change to 20sec W
     axs[0].plot(t, real_labels, 'r')
     axs[0].plot(t, real_output, 'g')
     # plt.plot(t,mean_squared_error(real_output,real_labels),":")
+    axs[0].axvline(2001, color="blue")
 
+    axs[1].axvline(3001, color="blue")
     axs[1].plot(waveform[0], 'r')
     axs[2].plot(waveform[1], 'b')
     axs[3].plot(waveform[2], 'g')
@@ -168,7 +170,7 @@ if __name__ == '__main__':
               )
     if action == 'test':
         test(catalog_path=args.catalog_path,
-             waveform_path=args.waveform_path,
+              hdf5_path=args.hdf5_path,
              checkpoint_path=args.checkpoint_path,
              hparams_file=args.hparams_file,
              )
