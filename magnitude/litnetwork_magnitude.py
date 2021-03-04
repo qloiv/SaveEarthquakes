@@ -3,7 +3,11 @@ import torch
 from pytorch_lightning.core.lightning import LightningModule
 from torch.nn import CrossEntropyLoss
 from torch.nn import Linear, ReLU, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns 
 
+from sklearn.metrics import confusion_matrix
 
 class LitNetwork(LightningModule):
     def __init__(self):
@@ -92,8 +96,19 @@ class LitNetwork(LightningModule):
         self.test_acc(predicted, label)
         self.log("test_acc", self.test_acc)
         self.log("test_loss", loss)
-        return loss
+        return { 'loss': loss, 'preds': predicted, 'target': label}
+    
+    def test_epoch_end(self, outputs):
+        preds = torch.cat([tmp['preds'] for tmp in outputs])
+        targets = torch.cat([tmp['target'] for tmp in outputs])
+        confusion_matrix = pl.metrics.functional.confusion_matrix(preds, targets, num_classes=7)
 
+        df_cm = pd.DataFrame(confusion_matrix.cpu().numpy(), index = range(1,8), columns=range(1,8))
+        plt.figure(figsize = (10,7))
+        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
+        fig_.savefig("confusion matrix")
+        
+        
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
         return optimizer

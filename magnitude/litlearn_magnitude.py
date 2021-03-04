@@ -56,15 +56,15 @@ def learn(catalog_path, hdf5_path, model_path):
     # torch.save(network.state_dict(), os.path.join(model_path, path))
 
 
-def test(catalog_path, waveform_path, checkpoint_path, hparams_file):
+def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     model = LitNetwork.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
         hparams_file=hparams_file,
         map_location=None,
     )
-    dm = LitDataModule(catalog_path, waveform_path)
+    dm = LitDataModule(catalog_path, hdf5_path)
     # init trainer with whatever options
-    trainer = pl.Trainer(gpus=[0])
+    trainer = pl.Trainer()
 
     # test (pass in the model)
     trainer.test(model, datamodule=dm)
@@ -98,7 +98,7 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
     event, station, ma, ml = test.iloc[idx][["EVENT", "STATION", "MA", "ML"]]
-
+    print("MA",ma,"ML",ml)
     waveform = np.array(h5data.get(event + "/" + station))
     filt = signal.butter(
         2, 2, btype="highpass", fs=100, output="sos"
@@ -124,6 +124,10 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     fig.suptitle("Predict Plot")
     axs[0].plot(t, labels, 'r')
     axs[0].plot(t, output, 'g')
+    axs[0].axvline(2001, color="blue")
+
+    axs[1].axvline(3001, color="blue")
+
     axs[2].plot(waveform[0], 'r')
     axs[3].plot(waveform[1], 'b')
     axs[1].plot(waveform[2], 'g')
@@ -133,7 +137,7 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
 
 
 # learn(cp,hp,mp)
-predict(cp, hp, chp)
+#predict(cp, hp, chp)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)
@@ -152,7 +156,7 @@ if __name__ == '__main__':
               )
     if action == 'test':
         test(catalog_path=args.catalog_path,
-             waveform_path=args.waveform_path,
+              hdf5_path=args.hdf5_path,
              checkpoint_path=args.checkpoint_path,
              hparams_file=args.hparams_file,
              )
