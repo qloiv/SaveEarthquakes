@@ -1,6 +1,7 @@
 from pytorch_lightning import LightningDataModule
+from torch.utils.data import DataLoader
 
-from datasets_magnitude import DetectionDataset, DataLoader
+from datasets_magnitude import DetectionDataset
 
 
 class LitDataModule(LightningDataModule):
