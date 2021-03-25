@@ -114,4 +114,4 @@ if __name__ == '__main__':
     action = args.action
 
     if action == 'analyse':
-        analyse(catalog_path=args.catalog_path)
+        analyse(cp=args.catalog_path)
