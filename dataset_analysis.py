@@ -52,9 +52,6 @@ def analyse(cp):
           , magnitudes_train.min(),
           magnitudes_val.max(), magnitudes_val.min())
 
-    # Fixing random state for reproducibility
-    np.random.seed(19680801)
-
     # Compute pie slices
     train_array = np.array(magnitudes_train)
     test_array = np.array(magnitudes_test)
@@ -72,10 +69,11 @@ def analyse(cp):
     width = 2 * np.pi / N - 0.001
     colors = colours
 
-    ax = plt.subplot(111, projection='polar')
+    fig1 = plt.figure()
+    ax = fig1.add_subplot(111, projection='polar')
     ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
 
-    plt.show()
+    fig1.savefig("polarPlot.png")
 
     train_array = np.array(magnitudes_train)
 
@@ -88,15 +86,17 @@ def analyse(cp):
     colours_sorted = colours[bars_argsorted]
     x = np.arange(0, len(bars), 1)
 
-    axes = plt.subplot(111)
+    fig2 = plt.figure()
+    axes = fig2.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
     axes.hist([train_array, test_array, val_array], alpha=1, bins=len(bars), histtype="stepfilled")
-    plt.show()
+    fig2.savefig("histogram.png")
 
-    axes1 = plt.subplot(111)
+    fig3 = plt.figure()
+    axes1 = fig3.add_subplot(111)
 
     axes1.scatter(magnitudes, distances, s=1)
-    plt.show()
+    fig3.savefig("scatterplot.png")
 
     print(np.cov(magnitudes, distances))
     print(pearsonr(magnitudes, distances))
@@ -106,6 +106,8 @@ def analyse(cp):
     plt.show()
 
 
+analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+        )
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)

@@ -1,4 +1,8 @@
 # creates a hdf5 file and a new catalogue
+# guarantees that the stations in the event waveforms are the same, as the station and events in the catalog
+# it also exludes waveforms, which are too short
+# additionally every waveform is resampled to 100Hz
+# no data augmentation or filtering
 
 import argparse
 import os
@@ -11,22 +15,23 @@ from obspy import UTCDateTime
 from tqdm import tqdm
 
 
-def filter_missing_files(data, events, input_dirs):
-    misses = 0
-    for event in events:
-        found = False
-        for waveform_path in input_dirs:
-            path = os.path.join(waveform_path, f"{event}.mseed")
-            if os.path.isfile(path):
-                found = True
-                # print(f'Missing file: {path}')
-        if not found:
-            misses += 1
-            events.remove(event)
-    if misses:
-        print(f"Could not find {misses} files")
-        data = data[data["EVENT"].isin(events)]
-    return data
+#
+# def filter_missing_files(data, events, input_dirs):
+#     misses = 0
+#     for event in events:
+#         found = False
+#         for waveform_path in input_dirs:
+#             path = os.path.join(waveform_path, f"{event}.mseed")
+#             if os.path.isfile(path):
+#                 found = True
+#                 # print(f'Missing file: {path}')
+#         if not found:
+#             misses += 1
+#             events.remove(event)
+#     if misses:
+#         print(f"Could not find {misses} files")
+#         data = data[data["EVENT"].isin(events)]
+#     return data
 
 
 def resample_trace(trace, sampling_rate):
@@ -96,8 +101,7 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
             station=station, channel="HH*"
         )  # HH = high frequency
         slice_length = 40
-        # P Pick Zeit - 10 Sekunden. Falls das zu kurz ist, ist der gesamte Trace zu kurz und fliegt dann später mit raus.
-
+        # P Pick Zeit - 10 Sek. Falls das zu kurz ist, ist der gesamte Trace zu kurz und fliegt dann später mit raus.
 
         station_stream = station_stream.slice(
             starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30)
@@ -105,7 +109,8 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
 
         if len(station_stream) < 3:
             stream_miss = stream_miss + 1
-            # print("Percentage of data left because stream or trace is missing from the waveform file: ",(original_length - stream_miss) / original_length)
+            # print("Percentage of data left because stream or trace is missing from the waveform file:
+            # ",(original_length - stream_miss) / original_length)
             new_frame.drop(current_row.name, inplace=True)  # is index of dataframe
             continue
 
@@ -120,7 +125,8 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
                 or np.shape(trace_n) != (1, 6001)
         ):
             trace_miss = trace_miss + 1
-            # print("Percentage of data left because trace shape was wrong",(original_length - trace_miss) / original_length,)
+            # print("Percentage of data left because trace shape was wrong",
+            # (original_length - trace_miss) / original_length,)
             new_frame.drop(current_row.name, inplace=True)
             continue
 

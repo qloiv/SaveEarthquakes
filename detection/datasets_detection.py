@@ -5,9 +5,18 @@ import os
 import h5py
 import numpy as np
 import pandas as pd
-import torch
 from scipy import signal
 from torch.utils.data import Dataset, DataLoader
+
+
+def obsyp_detrend_simple(data):
+    # Convert data if it's not a floating point type.
+    if not np.issubdtype(data.dtype, np.floating):
+        data = np.require(data, dtype=np.float64)
+    ndat = len(data)
+    x1, x2 = data[0], data[-1]
+    data -= x1 + np.arange(ndat) * (x2 - x1) / float(ndat - 1)
+    return data
 
 
 def filter_missing_files(data, events, input_dirs):
@@ -36,7 +45,8 @@ def resample_trace(trace, sampling_rate):
     else:
         trace.resample(sampling_rate)
 
-def normalize_stream(stream, global_max = False):
+
+def normalize_stream(stream, global_max=False):
     if global_max is True:
         ma = np.abs(stream).max()
         stream /= ma
@@ -69,14 +79,13 @@ class DetectionDataset(Dataset):
         self.time_after = time_after * self.sampling_rate
         self.idx_changes = 0
 
-
     def __len__(self):
         return (
                 len(self.catalog) * 2
         )  # because the noise examples are generated from the same data
 
     def __getitem__(self, idx):
-        #if torch.is_tensor(idx):
+        # if torch.is_tensor(idx):
         #    idx = idx.tolist()
         if self.h5data is None:
             self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
@@ -102,13 +111,16 @@ class DetectionDataset(Dataset):
                 random_point = np.random.randint(seq_len)
                 station_stream = waveform[:, self.p_pick - random_point: self.p_pick + (seq_len - random_point)]
 
+            d0 = obsyp_detrend_simple(station_stream[0])
+            d1 = obsyp_detrend_simple(station_stream[1])
+            d2 = obsyp_detrend_simple(station_stream[2])
             filt = signal.butter(
                 2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
             )
-            station_stream = signal.sosfilt(filt, station_stream, axis=-1).astype(
-                np.float32
-            )
-            station_stream = signal.detrend(station_stream)
+            f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+            f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+            f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+            station_stream = np.stack((f0, f1, f2))
             station_stream = normalize_stream(station_stream)
             sample = {"waveform": station_stream, "label": label}
             return sample
