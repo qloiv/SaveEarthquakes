@@ -30,11 +30,11 @@ def analyse(cp):
     events_val = sorted(val["EVENT"].unique())
     print(len(events), len(events_train), len(events_test), len(events_val))
 
-    # stations = sorted(catalog["STATION"].unique())
-    # stations_train = sorted(train["STATION"].unique())
-    # stations_test = sorted(test["STATION"].unique())
-    # stations_val = sorted(val["STATION"].unique())
-    # print(len(stations),len(stations_train),len(stations_test),len(stations_val))
+    stations = sorted(catalog["STATION"].unique())
+    stations_train = sorted(train["STATION"].unique())
+    stations_test = sorted(test["STATION"].unique())
+    stations_val = sorted(val["STATION"].unique())
+    print(len(stations),len(stations_train),len(stations_test),len(stations_val))
 
     distances = (catalog['DIST'])
     distances_train = train["DIST"]
@@ -51,6 +51,9 @@ def analyse(cp):
     print(magnitudes.max(), magnitudes.min(), magnitudes_train.max(), magnitudes_train.min(), magnitudes_test.max()
           , magnitudes_train.min(),
           magnitudes_val.max(), magnitudes_val.min())
+    print(np.cov(magnitudes, distances))
+    print(pearsonr(magnitudes, distances))
+    print(spearmanr(magnitudes, distances))
 
     # Compute pie slices
     train_array = np.array(magnitudes_train)
@@ -75,6 +78,12 @@ def analyse(cp):
 
     fig1.savefig("polarPlot.png")
 
+    #fig1 = plt.figure()
+    #ax = fig1.add_subplot(111, projection='polar')
+    #ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
+
+    #fig1.savefig("polarPlot.png")e
+
     train_array = np.array(magnitudes_train)
 
     test_array = np.array(magnitudes_test)
@@ -92,6 +101,7 @@ def analyse(cp):
     axes.hist([train_array, test_array, val_array], alpha=1, bins=len(bars), histtype="stepfilled")
     fig2.savefig("histogram.png")
 
+
     fig3 = plt.figure()
     axes1 = fig3.add_subplot(111)
 
@@ -102,12 +112,20 @@ def analyse(cp):
     print(pearsonr(magnitudes, distances))
     print(spearmanr(magnitudes, distances))
 
-    magnitudes.plot()
-    plt.show()
+
+    fig3 = plt.figure()
+    axes1 = fig3.add_subplot(111)
 
 
-analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
-        )
+    axes1.scatter(magnitudes, distances, s=0.2)
+    axes1.set_xscale("log")
+    fig3.savefig("scatterplot.png")
+
+    #magnitudes.plot()
+    #plt.show()
+
+#analyse(cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+#)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)
