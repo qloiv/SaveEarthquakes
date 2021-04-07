@@ -4,6 +4,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from scipy.stats import pearsonr
 from scipy.stats import spearmanr
 
@@ -98,9 +99,18 @@ def analyse(cp):
     fig2 = plt.figure()
     axes = fig2.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
-    axes.hist([train_array, test_array, val_array], alpha=1, bins=len(bars), histtype="stepfilled")
-    fig2.savefig("histogram.png")
+    sns.histplot(magnitudes, bins=50)
+    plt.xlabel("Magnitude")
+    plt.ylabel("Number of Examples")
+    fig2.savefig("histogram_ma.png")
 
+    fig5 = plt.figure()
+    axes = fig5.add_subplot(111)
+    # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
+    sns.histplot(distances / 1000, bins=50)
+    plt.xlabel("Distance in km")
+    plt.ylabel("Number of Examples")
+    fig5.savefig("histogram_dist.png")
 
     fig3 = plt.figure()
     axes1 = fig3.add_subplot(111)
@@ -124,8 +134,8 @@ def analyse(cp):
     #magnitudes.plot()
     #plt.show()
 
-#analyse(cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
-#)
+
+analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)
