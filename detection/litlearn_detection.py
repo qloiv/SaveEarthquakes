@@ -12,6 +12,7 @@ import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 
+from datasets_detection import obspy_detrend_simple, normalize_stream
 from litdatamodule_detection import LitDataModule
 from litnetwork_detection import LitNetwork
 
@@ -24,26 +25,6 @@ mp = "/home/viola/WS2021/Code/Models"
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
 # hparams_file = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/hparams.yaml",
 # map_location = None,
-
-def obsyp_detrend_simple(data):
-    # Convert data if it's not a floating point type.
-    if not np.issubdtype(data.dtype, np.floating):
-        data = np.require(data, dtype=np.float64)
-    ndat = len(data)
-    x1, x2 = data[0], data[-1]
-    data -= x1 + np.arange(ndat) * (x2 - x1) / float(ndat - 1)
-    return data
-
-
-def normalize_stream(stream, global_max=False):
-    if global_max is True:
-        ma = np.abs(stream).max()
-        stream /= ma
-    else:
-        for tr in stream:
-            ma_tr = np.abs(tr).max()
-            tr /= ma_tr
-    return stream
 
 
 def learn(catalog_path, hdf5_path, model_path):
@@ -178,17 +159,17 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     model.freeze()
 
     raw_waveform = np.array(h5data.get(event + "/" + station))
-
+    filt = signal.butter(
+        2, 2, btype="highpass", fs=100, output="sos"
+    )
     outs = np.zeros(len(raw_waveform[0]))
     for i in range(0, len(raw_waveform[0]) - 400):
         raw_waveform = np.array(h5data.get(event + "/" + station))  # reload stream
         window = raw_waveform[:, i:i + 400]
-        d0 = obsyp_detrend_simple(window[0])
-        d1 = obsyp_detrend_simple(window[1])
-        d2 = obsyp_detrend_simple(window[2])
-        filt = signal.butter(
-            2, 2, btype="highpass", fs=100, output="sos"
-        )
+        d0 = obspy_detrend_simple(window[0])
+        d1 = obspy_detrend_simple(window[1])
+        d2 = obspy_detrend_simple(window[2])
+
         f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
         f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
         f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
@@ -320,9 +301,9 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     # plt.savefig("current_plot")
 
 
-# learn(cp, hp, mp)
-predict(catalog_path=cp, hdf5_path=hp,
-        checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt")
+learn(cp, hp, mp)
+# predict(catalog_path=cp, hdf5_path=hp,
+# checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt")
 # test(catalog_path=cp,hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt",hparams_file="../tb_logs/detection/version_2/hparams.yaml")
 # test_one(catalog_path=cp, hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt")
 if __name__ == '__main__':

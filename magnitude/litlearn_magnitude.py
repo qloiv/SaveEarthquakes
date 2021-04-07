@@ -14,6 +14,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 from tqdm import tqdm
 
+from datasets_magnitude import obspy_detrend_simple, normalize_stream
 from litdatamodule_magnitude import LitDataModule
 from litnetwork_magnitude import LitNetwork
 
@@ -34,7 +35,6 @@ class ModelCheckpointAtEpochEnd(pl.Callback):
         metrics['epoch'] = trainer.current_epoch
         if trainer.disable_validation:
             trainer.checkpoint_callback.on_validation_end(trainer, pl_module)
-
 
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
@@ -109,10 +109,13 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     labels.fill(ml)
     for i in tqdm(range(0, 6000 - 20 * 100)):
         station_stream = waveform[:, i: i + 20 * 100]
-        station_stream = signal.sosfilt(filt, station_stream, axis=-1).astype(
-            np.float32
-        )
-        station_stream = signal.detrend(station_stream)
+        d0 = obspy_detrend_simple(station_stream[0])
+        d1 = obspy_detrend_simple(station_stream[1])
+        d2 = obspy_detrend_simple(station_stream[2])
+        f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+        f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+        f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+        station_stream = np.stack((f0, f1, f2))
         station_stream = normalize_stream(station_stream)
         station_stream = torch.from_numpy(station_stream[None])
         out = model(station_stream)

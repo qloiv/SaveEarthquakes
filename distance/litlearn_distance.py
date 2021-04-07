@@ -15,6 +15,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
+from datasets_distance import obspy_detrend_simple, normalize_stream
 from litdatamodule_distance import LitDataModule
 from litnetwork_distance import LitNetwork
 
@@ -74,7 +75,7 @@ def normalize_stream(stream, global_max=False):
     return stream
 
 
-def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO Change to 20sec Window
+def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence length into variable
     sequence_length = 20
     split_key = "test_files"
     file_path = hdf5_path
@@ -97,9 +98,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO Change to 20sec W
     )
     model.freeze()
 
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
-    event, station, distance = test.iloc[idx][["EVENT", "STATION", 'DIST']]
+    testset = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(testset))
+    event, station, distance = testset.iloc[idx][["EVENT", "STATION", 'DIST']]
     print(distance)
     print(scaler.transform(distance.reshape(1, -1)))
 
@@ -114,10 +115,14 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO Change to 20sec W
     s_labels = np.zeros(6000 - 2000)
     for i in tqdm(range(0, 6000 - 20 * 100)):
         station_stream = waveform[:, i: i + 20 * 100]
-        station_stream = signal.sosfilt(filt, station_stream, axis=-1).astype(
-            np.float32
-        )
-        station_stream = signal.detrend(station_stream)
+        d0 = obspy_detrend_simple(station_stream[0])
+        d1 = obspy_detrend_simple(station_stream[1])
+        d2 = obspy_detrend_simple(station_stream[2])
+
+        f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+        f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+        f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+        station_stream = np.stack((f0, f1, f2))
         station_stream = normalize_stream(station_stream)
         station_stream = torch.from_numpy(station_stream[None])
 

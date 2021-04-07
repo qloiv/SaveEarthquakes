@@ -9,7 +9,7 @@ from scipy import signal
 from torch.utils.data import Dataset, DataLoader
 
 
-def obsyp_detrend_simple(data):
+def obspy_detrend_simple(data):
     # Convert data if it's not a floating point type.
     if not np.issubdtype(data.dtype, np.floating):
         data = np.require(data, dtype=np.float64)
@@ -53,6 +53,7 @@ def normalize_stream(stream, global_max=False):
     else:
         for tr in stream:
             ma_tr = np.abs(tr).max()
+            print(ma_tr)
             tr /= ma_tr
     return stream
 
@@ -111,9 +112,9 @@ class DetectionDataset(Dataset):
                 random_point = np.random.randint(seq_len)
                 station_stream = waveform[:, self.p_pick - random_point: self.p_pick + (seq_len - random_point)]
 
-            d0 = obsyp_detrend_simple(station_stream[0])
-            d1 = obsyp_detrend_simple(station_stream[1])
-            d2 = obsyp_detrend_simple(station_stream[2])
+            d0 = obspy_detrend_simple(station_stream[0])
+            d1 = obspy_detrend_simple(station_stream[1])
+            d2 = obspy_detrend_simple(station_stream[2])
             filt = signal.butter(
                 2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
             )
