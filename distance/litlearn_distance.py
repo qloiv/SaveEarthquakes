@@ -5,7 +5,6 @@ from random import randrange
 
 import h5py
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -15,9 +14,9 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
-from datasets_distance import obspy_detrend_simple, normalize_stream
 from litdatamodule_distance import LitDataModule
 from litnetwork_distance import LitNetwork
+from utils import *
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
@@ -64,17 +63,6 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     trainer.test(model, datamodule=dm)
 
 
-def normalize_stream(stream, global_max=False):
-    if global_max is True:
-        ma = np.abs(stream).max()
-        stream /= ma
-    else:
-        for tr in stream:
-            ma_tr = np.abs(tr).max()
-            tr /= ma_tr
-    return stream
-
-
 def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence length into variable
     sequence_length = 20
     split_key = "test_files"
@@ -115,15 +103,15 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     s_labels = np.zeros(6000 - 2000)
     for i in tqdm(range(0, 6000 - 20 * 100)):
         station_stream = waveform[:, i: i + 20 * 100]
-        d0 = obspy_detrend_simple(station_stream[0])
-        d1 = obspy_detrend_simple(station_stream[1])
-        d2 = obspy_detrend_simple(station_stream[2])
+        d0 = obspy_detrend(station_stream[0])
+        d1 = obspy_detrend(station_stream[1])
+        d2 = obspy_detrend(station_stream[2])
 
         f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
         f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
         f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
         station_stream = np.stack((f0, f1, f2))
-        station_stream = normalize_stream(station_stream)
+        station_stream, _ = normalize_stream(station_stream)
         station_stream = torch.from_numpy(station_stream[None])
 
         out = model(station_stream).squeeze()

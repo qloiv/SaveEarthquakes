@@ -1,61 +1,12 @@
 from __future__ import print_function, division
 
-import os
-
 import h5py
-import numpy as np
 import pandas as pd
 from scipy import signal
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset, DataLoader
 
-
-def obspy_detrend_simple(data):
-    # Convert data if it's not a floating point type.
-    if not np.issubdtype(data.dtype, np.floating):
-        data = np.require(data, dtype=np.float64)
-    ndat = len(data)
-    x1, x2 = data[0], data[-1]
-    data -= x1 + np.arange(ndat) * (x2 - x1) / float(ndat - 1)
-    return data
-
-
-def normalize_stream(stream, global_max=False):
-    if global_max is True:
-        ma = np.abs(stream).max()
-        stream /= ma
-    else:
-        for tr in stream:
-            ma_tr = np.abs(tr).max()
-            tr /= ma_tr
-    return stream
-
-
-def filter_missing_files(data, events, input_dirs):
-    misses = 0
-    for event in events:
-        found = False
-        for waveform_path in input_dirs:
-            path = os.path.join(waveform_path, f"{event}.mseed")
-            if os.path.isfile(path):
-                found = True
-                # print(f'Missing file: {path}')
-        if not found:
-            misses += 1
-            events.remove(event)
-    if misses:
-        print(f"Could not find {misses} files")
-        data = data[data["EVENT"].isin(events)]
-    return data
-
-
-def resample_trace(trace, sampling_rate):
-    if trace.stats.sampling_rate == sampling_rate:
-        return
-    if trace.stats.sampling_rate % sampling_rate == 0:
-        trace.decimate(int(trace.stats.sampling_rate / sampling_rate))
-    else:
-        trace.resample(sampling_rate)
+from utils import *
 
 
 class DistanceDataset(Dataset):
@@ -107,37 +58,39 @@ class DistanceDataset(Dataset):
         #    idx = idx.tolist()
         if self.h5data is None:
             self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
+        while True:
+            event, station, distance = self.catalog.iloc[idx][["EVENT", "STATION", 'DIST']]
 
-        event, station, distance = self.catalog.iloc[idx][["EVENT", "STATION", 'DIST']]
+            # s_dist = (distance ** self.lb - 1) / self.lb
+            # assert s_dist != np.nan
+            #
+            # ts_dist =self.scaler.transform(s_dist.reshape(1,-1))
+            # label = np.float32(ts_dist.squeeze())
+            # assert 0 <= label <= 1, str(label)
 
-        # s_dist = (distance ** self.lb - 1) / self.lb
-        # assert s_dist != np.nan
-        #
-        # ts_dist =self.scaler.transform(s_dist.reshape(1,-1))
-        # label = np.float32(ts_dist.squeeze())
-        # assert 0 <= label <= 1, str(label)
+            ts_dist = self.scaler.transform(distance.reshape(1, -1))
+            label = np.float32(ts_dist.squeeze())
 
-        ts_dist = self.scaler.transform(distance.reshape(1, -1))
-        label = np.float32(ts_dist.squeeze())
-
-        # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
-        waveform = np.array(self.h5data.get(event + "/" + station))
-        seq_len = self.time_before + self.time_after  # is 2000 if 20sec Window
-        random_point = np.random.randint(seq_len)
-        station_stream = waveform[:, self.p_pick - random_point: self.p_pick + (seq_len - random_point)]
-        d0 = obspy_detrend_simple(station_stream[0])
-        d1 = obspy_detrend_simple(station_stream[1])
-        d2 = obspy_detrend_simple(station_stream[2])
-        filt = signal.butter(
-            2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
-        )
-        f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
-        f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
-        f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
-        station_stream = np.stack((f0, f1, f2))
-        station_stream = normalize_stream(station_stream)
-        sample = {"waveform": station_stream, "label": label}
-        return sample
+            # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
+            waveform = np.array(self.h5data.get(event + "/" + station))
+            seq_len = self.time_before + self.time_after  # is 2000 if 20sec Window
+            random_point = np.random.randint(seq_len)
+            station_stream = waveform[:, self.p_pick - random_point: self.p_pick + (seq_len - random_point)]
+            d0 = obspy_detrend(station_stream[0])
+            d1 = obspy_detrend(station_stream[1])
+            d2 = obspy_detrend(station_stream[2])
+            filt = signal.butter(
+                2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
+            )
+            f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+            f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+            f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+            station_stream = np.stack((f0, f1, f2))
+            station_stream, bl = normalize_stream(station_stream)
+            if bl is False:
+                continue
+            sample = {"waveform": station_stream, "label": label}
+            return sample
 
 
 def get_data_loaders(

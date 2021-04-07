@@ -78,24 +78,26 @@ class DetectionDataset(Dataset):
     def __getitem__(self, idx):
         if self.h5data is None:
             self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
-
-        event, station, magnitude = self.catalog.iloc[idx][["EVENT", "STATION", "ML"]]
-        label = np.int64(magnitude)
-        # in all waveforms in the hdf5 catalogue, the pick was placed at index 1001
-        waveform = np.array(self.h5data.get(event + "/" + station))
-        seq_len = self.time_before + self.time_after
-        random_point = np.random.randint(seq_len)
-        station_stream = waveform[:, self.p_pick - random_point: self.p_pick + (seq_len - random_point)]
-        d0 = obspy_detrend_simple(station_stream[0])
-        d1 = obspy_detrend_simple(station_stream[1])
-        d2 = obspy_detrend_simple(station_stream[2])
-        filt = signal.butter(
-            2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
-        )
-        f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
-        f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
-        f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
-        station_stream = np.stack((f0, f1, f2))
-        station_stream = normalize_stream(station_stream)
-        sample = {"waveform": station_stream, "label": label}
-        return sample
+        while True:
+            event, station, magnitude = self.catalog.iloc[idx][["EVENT", "STATION", "ML"]]
+            label = np.int64(magnitude)
+            # in all waveforms in the hdf5 catalogue, the pick was placed at index 1001
+            waveform = np.array(self.h5data.get(event + "/" + station))
+            seq_len = self.time_before + self.time_after
+            random_point = np.random.randint(seq_len)
+            station_stream = waveform[:, self.p_pick - random_point: self.p_pick + (seq_len - random_point)]
+            d0 = obspy_detrend_simple(station_stream[0])
+            d1 = obspy_detrend_simple(station_stream[1])
+            d2 = obspy_detrend_simple(station_stream[2])
+            filt = signal.butter(
+                2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
+            )
+            f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+            f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+            f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+            station_stream = np.stack((f0, f1, f2))
+            station_stream, bl = normalize_stream(station_stream)
+            if bl is False:
+                continue
+            sample = {"waveform": station_stream, "label": label}
+            return sample
