@@ -100,6 +100,7 @@ def analyse(cp):
     axes = fig2.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
     sns.histplot(magnitudes, bins=50)
+    axes.set_yscale("log")
     plt.xlabel("Magnitude")
     plt.ylabel("Number of Examples")
     fig2.savefig("histogram_ma.png")
