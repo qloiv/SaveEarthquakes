@@ -73,17 +73,13 @@ def analyse(cp):
     width = 2 * np.pi / N - 0.001
     colors = colours
 
-    fig1 = plt.figure()
-    ax = fig1.add_subplot(111, projection='polar')
-    ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
 
-    fig1.savefig("polarPlot.png")
 
     #fig1 = plt.figure()
     #ax = fig1.add_subplot(111, projection='polar')
     #ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
 
-    #fig1.savefig("polarPlot.png")e
+    #fig1.savefig("polarPlot.png")
 
     train_array = np.array(magnitudes_train)
 
@@ -99,7 +95,8 @@ def analyse(cp):
     fig2 = plt.figure()
     axes = fig2.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
-    sns.histplot(magnitudes, bins=50)
+    sns.histplot(magnitudes, bins=100, palette = "Blues")
+    axes.set_yscale("log")
     plt.xlabel("Magnitude")
     plt.ylabel("Number of Examples")
     fig2.savefig("histogram_ma.png")
@@ -107,7 +104,7 @@ def analyse(cp):
     fig5 = plt.figure()
     axes = fig5.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
-    sns.histplot(distances / 1000, bins=50)
+    sns.histplot(distances / 1000, bins=100)
     plt.xlabel("Distance in km")
     plt.ylabel("Number of Examples")
     fig5.savefig("histogram_dist.png")
@@ -135,7 +132,7 @@ def analyse(cp):
     #plt.show()
 
 
-analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
+#analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)
