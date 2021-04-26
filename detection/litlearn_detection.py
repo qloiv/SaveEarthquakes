@@ -10,11 +10,13 @@ import pytorch_lightning as pl
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
+import numpy as np
 
 from litdatamodule_detection import LitDataModule
 from litnetwork_detection import LitNetwork
-from utils import *
 
+
+from datasets_detection import obspy_detrend,normalize_stream
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
 hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
@@ -179,8 +181,8 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
 
     #    print("---")
 
-    fig, axs = plt.subplots(4)
-    fig.suptitle("Raw data with P-Pick, Detections added up ")
+    fig, axs = plt.subplots(4, constrained_layout= True)
+    fig.suptitle("Input: Raw data with P-Pick with detection vector ")
     # d0 = obsyp_detrend_simple(raw_waveform[0])
     # d1 = obsyp_detrend_simple(raw_waveform[1])
     # d2 = obsyp_detrend_simple(raw_waveform[2])
@@ -296,8 +298,8 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
 
 
 # learn(cp, hp, mp)
-predict(catalog_path=cp, hdf5_path=hp,
-        checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
+#predict(catalog_path=cp, hdf5_path=hp,
+        #checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
 # test(catalog_path=cp,hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt",hparams_file="../tb_logs/detection/version_2/hparams.yaml")
 # test_one(catalog_path=cp, hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
 if __name__ == '__main__':

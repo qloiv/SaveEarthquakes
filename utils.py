@@ -2,28 +2,6 @@ import os
 import numpy as np
 
 
-def obspy_detrend(data):
-    # based on obspys detrend ("simple") function
-    if not np.issubdtype(data.dtype, np.floating):
-        data = np.require(data, dtype=np.float64)
-    ndat = len(data)
-    x1, x2 = data[0], data[-1]
-    data -= x1 + np.arange(ndat) * (x2 - x1) / float(ndat - 1)
-    return data
-
-
-def normalize_stream(stream, global_max=False):
-    if global_max is True:
-        ma = np.abs(stream).max()
-        stream /= ma
-    else:
-        for tr in stream:
-            ma_tr = np.abs(tr).max()
-            if(ma_tr==0):
-                return stream, False
-            tr /= ma_tr
-    return stream, True
-
 
 def filter_missing_files(data, events, input_dirs):
     misses = 0

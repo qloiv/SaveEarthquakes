@@ -13,10 +13,11 @@ from scipy import signal
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
-
+import numpy as np
 from litdatamodule_distance import LitDataModule
 from litnetwork_distance import LitNetwork
-from utils import *
+from datasets_distance import obspy_detrend,normalize_stream
+
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
@@ -144,7 +145,7 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     fig.savefig("predict plot")
 
 
-predict(cp, hp, chp)
+#predict(cp, hp, chp)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)

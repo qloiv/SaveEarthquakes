@@ -36,7 +36,7 @@ class LitDataModule(LightningDataModule):
         return training_loader
 
     def val_dataloader(self):
-        batch_size = 64
+        batch_size = 1024
         num_workers = 4
         test_run = False
         validation_data = DetectionDataset(
@@ -55,7 +55,7 @@ class LitDataModule(LightningDataModule):
         return validation_loader
 
     def test_dataloader(self):
-        batch_size = 64
+        batch_size = 1024
         num_workers = 4
         test_run = False
         if test_run:

@@ -4,8 +4,33 @@ import h5py
 import pandas as pd
 from scipy import signal
 from torch.utils.data import Dataset, DataLoader
+import numpy as np
 
-from utils import *
+def obspy_detrend(data):
+    # based on obspys detrend ("simple") function
+    if not np.issubdtype(data.dtype, np.floating):
+        data = np.require(data, dtype=np.float64)
+    ndat = len(data)
+    x1, x2 = data[0], data[-1]
+    data -= x1 + np.arange(ndat) * (x2 - x1) / float(ndat - 1)
+    return data
+
+
+def normalize_stream(stream, global_max=False):
+    if global_max is True:
+        ma = np.abs(stream).max()
+        stream /= ma
+    else:
+        i = 0
+        for tr in stream:
+            ma_tr = np.abs(tr).max()
+            if(ma_tr==0):
+                i+=1
+            else:
+                tr /= ma_tr
+        if i ==3:
+            print("Der gesamte Stream ist 0")
+    return stream, True
 
 
 class DetectionDataset(Dataset):
