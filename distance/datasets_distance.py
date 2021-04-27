@@ -4,7 +4,7 @@ import h5py
 import pandas as pd
 from scipy import signal
 from sklearn.preprocessing import MinMaxScaler
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 from utils import *
 
@@ -25,7 +25,7 @@ class DistanceDataset(Dataset):
 
         catalog = pd.read_csv(catalog_path)
         train = catalog[catalog["SPLIT"] == "TRAIN"]
-        dist = np.append(np.array(train["DIST"]), [1, 500000])
+        dist = np.append(np.array(train["DIST"]), [1, 600000])
 
         # # compute best lambda on train set
         # l, opt_lambda = stats.boxcox(dist)
@@ -92,55 +92,55 @@ class DistanceDataset(Dataset):
             sample = {"waveform": station_stream, "label": label}
             return sample
 
-
-def get_data_loaders(
-        catalog_path,
-        hdf5_path,
-        batch_size=64,
-        num_workers=4,
-        shuffle=True,
-        test_run=False,
-):
-    if test_run:
-        num_workers = 1
-
-    training_data = DistanceDataset(
-        catalog_path=catalog_path,
-        hdf5_path=hdf5_path,
-        split="TRAIN",
-        test_run=test_run,
-    )
-    validation_data = DistanceDataset(
-        catalog_path=catalog_path,
-        hdf5_path=hdf5_path,
-        split="DEV",
-        test_run=test_run,
-    )
-
-    training_loader = DataLoader(
-        training_data, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle
-    )
-    validation_loader = DataLoader(
-        validation_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
-    )
-
-    return training_loader, validation_loader
-
-
-def get_test_loader(
-        catalog_path, hdf5_path, batch_size=64, num_workers=4, test_run=False
-):
-    if test_run:
-        num_workers = 1
-    test_data = DistanceDataset(
-        catalog_path=catalog_path,
-        hdf5_path=hdf5_path,
-        split="TEST",
-        test_run=test_run,
-    )
-
-    test_loader = DataLoader(
-        test_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
-    )
-
-    return test_loader
+#
+# def get_data_loaders(
+#         catalog_path,
+#         hdf5_path,
+#         batch_size=64,
+#         num_workers=4,
+#         shuffle=True,
+#         test_run=False,
+# ):
+#     if test_run:
+#         num_workers = 1
+#
+#     training_data = DistanceDataset(
+#         catalog_path=catalog_path,
+#         hdf5_path=hdf5_path,
+#         split="TRAIN",
+#         test_run=test_run,
+#     )
+#     validation_data = DistanceDataset(
+#         catalog_path=catalog_path,
+#         hdf5_path=hdf5_path,
+#         split="DEV",
+#         test_run=test_run,
+#     )
+#
+#     training_loader = DataLoader(
+#         training_data, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle
+#     )
+#     validation_loader = DataLoader(
+#         validation_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
+#     )
+#
+#     return training_loader, validation_loader
+#
+#
+# def get_test_loader(
+#         catalog_path, hdf5_path, batch_size=64, num_workers=4, test_run=False
+# ):
+#     if test_run:
+#         num_workers = 1
+#     test_data = DistanceDataset(
+#         catalog_path=catalog_path,
+#         hdf5_path=hdf5_path,
+#         split="TEST",
+#         test_run=test_run,
+#     )
+#
+#     test_loader = DataLoader(
+#         test_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
+#     )
+#
+#     return test_loader

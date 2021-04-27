@@ -7,7 +7,6 @@ import h5py
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytorch_lightning as pl
-import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 from sklearn.metrics import mean_squared_error
@@ -35,7 +34,7 @@ def learn(catalog_path, hdf5_path, model_path):
     dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)
     logger = TensorBoardLogger("../tb_logs", name="distance")
     trainer = pl.Trainer(
-        gpus=[0],
+        gpus=0,
         logger=logger,
         gradient_clip_val=1,
         track_grad_norm=2,
@@ -73,7 +72,7 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     train = catalog[catalog["SPLIT"] == "TRAIN"]
     dist = np.append(np.array(train["DIST"]), [1, 600000])
 
-    scaler = MinMaxScaler(feature_range=(-1, 1))
+    scaler = MinMaxScaler()
 
     scaler.fit(dist.reshape(-1, 1))
     # train_scaled = scaler.transform(train.reshape(-1, 1))
@@ -144,7 +143,8 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     fig.savefig("predict plot")
 
 
-predict(cp, hp, chp)
+learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
+# predict(cp, hp, chp)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)
