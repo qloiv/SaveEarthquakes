@@ -5,17 +5,19 @@ from random import randrange
 
 import h5py
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
+from datasets_distance import obspy_detrend, normalize_stream
 from litdatamodule_distance import LitDataModule
 from litnetwork_distance import LitNetwork
-from utils import *
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
@@ -34,7 +36,7 @@ def learn(catalog_path, hdf5_path, model_path):
     dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)
     logger = TensorBoardLogger("../tb_logs", name="distance")
     trainer = pl.Trainer(
-        gpus=0,
+        gpus=[0],
         logger=logger,
         gradient_clip_val=1,
         track_grad_norm=2,
@@ -143,7 +145,7 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     fig.savefig("predict plot")
 
 
-learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
+# learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -35,7 +35,15 @@ def analyse(cp):
     stations_train = sorted(train["STATION"].unique())
     stations_test = sorted(test["STATION"].unique())
     stations_val = sorted(val["STATION"].unique())
-    print(len(stations),len(stations_train),len(stations_test),len(stations_val))
+    print(len(stations), len(stations_train), len(stations_test), len(stations_val))
+
+    depth = (catalog['DEPTH'])
+    depth_train = train["DEPTH"]
+    depth_test = test["DEPTH"]
+    depth_val = val["DEPTH"]
+    print(depth.max(), depth.min(), depth_train.max(), depth_train.min(), depth_test.max(),
+          depth_train.min(),
+          depth_val.max(), depth_val.min())
 
     distances = (catalog['DIST'])
     distances_train = train["DIST"]
@@ -73,17 +81,17 @@ def analyse(cp):
     width = 2 * np.pi / N - 0.001
     colors = colours
 
-    fig1 = plt.figure()
-    ax = fig1.add_subplot(111, projection='polar')
-    ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
+    # fig1 = plt.figure()
+    # ax = fig1.add_subplot(111, projection='polar')
+    # ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
 
-    fig1.savefig("polarPlot.png")
+    # fig1.savefig("polarPlot.png")
 
-    #fig1 = plt.figure()
-    #ax = fig1.add_subplot(111, projection='polar')
-    #ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
+    # fig1 = plt.figure()
+    # ax = fig1.add_subplot(111, projection='polar')
+    # ax.bar(theta, radii, width=width, bottom=0.0, color=colors, alpha=0.5)
 
-    #fig1.savefig("polarPlot.png")e
+    # fig1.savefig("polarPlot.png")e
 
     train_array = np.array(magnitudes_train)
 
@@ -99,7 +107,7 @@ def analyse(cp):
     fig2 = plt.figure()
     axes = fig2.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
-    sns.histplot(magnitudes, bins=50)
+    sns.histplot(magnitudes, bins=100)
     axes.set_yscale("log")
     plt.xlabel("Magnitude")
     plt.ylabel("Number of Examples")
@@ -108,35 +116,42 @@ def analyse(cp):
     fig5 = plt.figure()
     axes = fig5.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
-    sns.histplot(distances / 1000, bins=50)
+    sns.histplot(distances / 1000, bins=100)
     plt.xlabel("Distance in km")
     plt.ylabel("Number of Examples")
     fig5.savefig("histogram_dist.png")
 
-    fig3 = plt.figure()
-    axes1 = fig3.add_subplot(111)
+    fig6 = plt.figure()
+    axes = fig6.add_subplot(111)
+    # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
+    sns.histplot(depth, bins=100)
+    plt.xlabel("Depth in m")
+    plt.ylabel("Number of Examples")
+    fig6.savefig("histogram_depth.png")
 
-    axes1.scatter(magnitudes, distances, s=1)
-    fig3.savefig("scatterplot.png")
+    # fig3 = plt.figure()
+    # axes1 = fig3.add_subplot(111)
 
-    print(np.cov(magnitudes, distances))
-    print(pearsonr(magnitudes, distances))
-    print(spearmanr(magnitudes, distances))
+    # axes1.scatter(magnitudes, distances, s=1)
+    # fig3.savefig("scatterplot.png")
 
+    # print(np.cov(magnitudes, distances))
+    # print(pearsonr(magnitudes, distances))
+    # print(spearmanr(magnitudes, distances))
 
-    fig3 = plt.figure()
-    axes1 = fig3.add_subplot(111)
+    #
+    # fig3 = plt.figure()
+    # axes1 = fig3.add_subplot(111)
 
-
-    axes1.scatter(magnitudes, distances, s=0.2)
+    axes1.scatter(magnitudes, distances / 1000, s=0.2)
     axes1.set_xscale("log")
     fig3.savefig("scatterplot.png")
 
-    #magnitudes.plot()
-    #plt.show()
+    # magnitudes.plot()
+    # plt.show()
 
 
-analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
+# analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--action', type=str, required=True)

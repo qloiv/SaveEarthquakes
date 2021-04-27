@@ -14,9 +14,9 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 from tqdm import tqdm
 
+from datasets_magnitude import normalize_stream, obspy_detrend
 from litdatamodule_magnitude import LitDataModule
 from litnetwork_magnitude import LitNetwork
-from utils import normalize_stream, obspy_detrend
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
@@ -41,7 +41,7 @@ def learn(catalog_path, hdf5_path, model_path):
     dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)
     logger = TensorBoardLogger("../tb_logs", name="magnitude")
     checkpoint_callback = ModelCheckpoint()
-    ch2 = ModelCheckpointAtEpochEnd()
+    # ch2 = ModelCheckpointAtEpochEnd()
     trainer = pl.Trainer(
         callbacks=[checkpoint_callback],
         gpus=[0],
@@ -64,7 +64,7 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     )
     dm = LitDataModule(catalog_path, hdf5_path)
     # init trainer with whatever options
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(gpus=[0])
 
     # test (pass in the model)
     trainer.test(model, datamodule=dm)
