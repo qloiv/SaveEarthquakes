@@ -145,7 +145,7 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     fig.savefig("predict plot")
 
 
-# learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
+learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
