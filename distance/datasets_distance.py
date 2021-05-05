@@ -51,7 +51,9 @@ class DistanceDataset(Dataset):
 
         catalog = pd.read_csv(catalog_path)
         train = catalog[catalog["SPLIT"] == "TRAIN"]
-        dist = np.append(np.array(train["DIST"]), [1, 600000])
+        dist = np.array([1, 600000])
+        assert max(np.array(train["DIST"])) <= 600000
+        assert min(np.array(train["DIST"])) >= 1
 
         # # compute best lambda on train set
         # l, opt_lambda = stats.boxcox(dist)

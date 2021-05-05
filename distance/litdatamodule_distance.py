@@ -13,7 +13,7 @@ class LitDataModule(LightningDataModule):
     # TODO some dataset logic can be put into the datamodule, ie extracting data from the catalogue
 
     def train_dataloader(self):
-        batch_size = 64
+        batch_size = 1024
         num_workers = 4
         shuffle = True
         test_run = False
@@ -36,7 +36,7 @@ class LitDataModule(LightningDataModule):
         return training_loader
 
     def val_dataloader(self):
-        batch_size = 64
+        batch_size = 1024
         num_workers = 4
         test_run = False
         validation_data = DistanceDataset(
@@ -55,7 +55,7 @@ class LitDataModule(LightningDataModule):
         return validation_loader
 
     def test_dataloader(self):
-        batch_size = 64
+        batch_size = 1024
         num_workers = 4
         test_run = False
         if test_run:
