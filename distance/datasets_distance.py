@@ -1,8 +1,8 @@
 from __future__ import print_function, division
 
-import h5py
 import numpy as np
 import pandas as pd
+import tables
 from scipy import signal
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset
@@ -25,7 +25,7 @@ def normalize_stream(stream, global_max=False):
     else:
         i = 0
         for tr in stream:
-            ma_tr = np.abs(tr).max()
+            ma_tr = np.abs(tr).max()  # TODO replace for division through x+epsilon
             if (ma_tr == 0):
                 i += 1
             else:
@@ -85,8 +85,10 @@ class DistanceDataset(Dataset):
         # if torch.is_tensor(idx):
         #    idx = idx.tolist()
         if self.h5data is None:
-            self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
-        while True:
+            file = tables.open_file(self.file_path, driver="H5FD_CORE")  # only sets pointer to the file, does
+            # not load it
+            self.h5data = file.root[self.split_key]
+        while True:  # TODO remove while loop
             event, station, distance = self.catalog.iloc[idx][["EVENT", "STATION", 'DIST']]
 
             # s_dist = (distance ** self.lb - 1) / self.lb
@@ -100,7 +102,7 @@ class DistanceDataset(Dataset):
             label = np.float32(ts_dist.squeeze())
 
             # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
-            waveform = np.array(self.h5data.get(event + "/" + station))
+            waveform = np.array(self.h5data[event + "/" + station])
             seq_len = self.time_before + self.time_after  # is 2000 if 20sec Window
             random_point = np.random.randint(seq_len)
             station_stream = waveform[:, self.p_pick - random_point: self.p_pick + (seq_len - random_point)]
@@ -114,7 +116,7 @@ class DistanceDataset(Dataset):
             f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
             f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
             station_stream = np.stack((f0, f1, f2))
-            station_stream, bl = normalize_stream(station_stream)
+            station_stream, bl = normalize_stream(station_stream)  # TODO remove return value
             if bl is False:
                 continue
             sample = {"waveform": station_stream, "label": label}

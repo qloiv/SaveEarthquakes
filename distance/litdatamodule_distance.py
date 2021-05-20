@@ -5,15 +5,15 @@ from datasets_distance import DistanceDataset
 
 
 class LitDataModule(LightningDataModule):
-    def __init__(self, catalog_path, hdf5_path):
+    def __init__(self, catalog_path, hdf5_path, batch_size):
         super().__init__()
         self.catalog_path = catalog_path
         self.hdf5_path = hdf5_path
+        self.batch_size = batch_size
 
     # TODO some dataset logic can be put into the datamodule, ie extracting data from the catalogue
 
     def train_dataloader(self):
-        batch_size = 1024
         num_workers = 4
         shuffle = True
         test_run = False
@@ -29,14 +29,13 @@ class LitDataModule(LightningDataModule):
         )
         training_loader = DataLoader(
             training_data,
-            batch_size=batch_size,
+            batch_size=self.batch_size,
             num_workers=num_workers,
             shuffle=shuffle,
         )
         return training_loader
 
     def val_dataloader(self):
-        batch_size = 1024
         num_workers = 4
         test_run = False
         validation_data = DistanceDataset(
@@ -48,14 +47,13 @@ class LitDataModule(LightningDataModule):
 
         validation_loader = DataLoader(
             validation_data,
-            batch_size=batch_size,
+            batch_size=self.batch_size,
             num_workers=num_workers,
             shuffle=False,
         )
         return validation_loader
 
     def test_dataloader(self):
-        batch_size = 1024
         num_workers = 4
         test_run = False
         if test_run:
@@ -69,7 +67,7 @@ class LitDataModule(LightningDataModule):
 
         test_loader = DataLoader(
             test_data,
-            batch_size=batch_size,
+            batch_size=self.batch_size,
             num_workers=num_workers,
             shuffle=False,
         )

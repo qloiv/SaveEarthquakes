@@ -1,9 +1,12 @@
+import math
+
 import pytorch_lightning as pl
 import torch.nn
 from pytorch_lightning.core.lightning import LightningModule
 from torch import Tensor
 from torch.nn import Linear, ReLU, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d  # GaussianNLLLoss
 from torch.nn.modules.loss import _Loss
+from torch.overrides import handle_torch_function
 
 
 class GaussianNLLLoss(_Loss):
