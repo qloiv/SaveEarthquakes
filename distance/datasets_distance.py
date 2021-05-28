@@ -8,6 +8,7 @@ import pandas as pd
 from scipy import signal
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 
 def obspy_detrend(data):
@@ -79,6 +80,15 @@ class DistanceDataset(Dataset):
         self.idx_changes = 0
 
         self.h5dict = defaultdict(dict)
+        with h5py.File(self.file_path, "r") as h5file:
+            h5file = h5file.get(self.split_key)
+            events = self.catalog["EVENT"]
+            stations = self.catalog["STATION"]
+            hp5index = list(zip(events, stations))
+            # write new dict using this tuple list
+            for event, station in tqdm(hp5index):
+                waveform = np.array(h5file.get(event + "/" + station))
+                self.h5dict[event][station] = waveform
 
     def __len__(self):
         return (
@@ -88,15 +98,6 @@ class DistanceDataset(Dataset):
     def __getitem__(self, idx):
         # if torch.is_tensor(idx):
         #    idx = idx.tolist()
-        if self.h5data is None:
-            self.h5data = h5py.File(self.file_path, "r").get(self.split_key)
-            events = self.catalog["EVENT"]
-            stations = self.catalog["STATION"]
-            hp5index = list(zip(events, stations))
-            # write new dict using this tuple list
-            for event, station in hp5index:
-                waveform = np.array(self.h5data.get(event + "/" + station))
-                self.h5dict[event][station] = waveform
         while True:
             event, station, distance = self.catalog.iloc[idx][["EVENT", "STATION", 'DIST']]
 
