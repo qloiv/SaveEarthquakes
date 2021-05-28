@@ -4,9 +4,10 @@ import pytorch_lightning as pl
 import torch.nn
 from pytorch_lightning.core.lightning import LightningModule
 from torch import Tensor
-from torch.nn import Linear, ReLU, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d  # GaussianNLLLoss
+from torch.nn import Linear, ReLU, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d, Softplus  # GaussianNLLLoss
 from torch.nn.modules.loss import _Loss
 from torch.overrides import handle_torch_function
+from torch.overrides import has_torch_function
 
 
 class GaussianNLLLoss(_Loss):
@@ -118,18 +119,24 @@ class LitNetwork(LightningModule):
             BatchNorm1d(256),
             ReLU(),
             MaxPool1d(kernel_size=2, stride=2),
-            Flatten(),
         )
 
+        self.pooling_layer = MaxPool1d(kernel_size=2, stride=2)
+
+        self.flatten_layer = Flatten()
+
         self.linear_layers1 = Sequential(
-            Linear(25 * 256 * 5, 200),  # the keras network uses 200 units, so...
-            BatchNorm1d(200),
+            Linear(256 * 15, 200),  # the keras network uses 200 units, so...
+            # BatchNorm1d(200),
             ReLU(),
         )
-        self.linear_layers2 = Sequential(
-            Linear(200, 2),
-            BatchNorm1d(2),
-            ReLU(),
+        self.linear_layers21 = Sequential(
+            Linear(200, 1),
+            Softplus(),
+        )
+        self.linear_layers22 = Sequential(
+            Linear(200, 1),
+            Softplus(),
         )
 
         self.test_acc = pl.metrics.Accuracy()
@@ -141,18 +148,26 @@ class LitNetwork(LightningModule):
         x = self.cnn_layer2(x)
         x = self.cnn_layer3(x)
         x = self.cnn_layer4(x)
+
+        x = self.pooling_layer(x)
+        x = self.pooling_layer(x)
+        x = self.pooling_layer(x)
+
+        x = self.flatten_layer(x)
+
         x = self.linear_layers1(x)
-        x = self.linear_layers2(x)
-        return x
+        mue = self.linear_layers21(x)
+        var = self.linear_layers22(x)
+        return mue, var
 
     def training_step(self, inputs, inputs_idx):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform)
-        learned = outputs[:, 0]
-        var = outputs.data[:, 1]
+        mue = outputs[0]
+        var = outputs[1]
         criterion = GaussianNLLLoss()
-        loss = criterion(learned, label, var)
+        loss = criterion(mue, label, var)
         self.log("train_loss", loss)
         return loss
 
@@ -160,10 +175,10 @@ class LitNetwork(LightningModule):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform)
-        learned = outputs[:, 0]
-        var = outputs.data[:, 1]
+        mue = outputs[0]
+        var = outputs[1]
         criterion = GaussianNLLLoss()
-        loss = criterion(learned, label, var)
+        loss = criterion(mue, label, var)
         self.log("val_loss", loss)
         return loss
 
@@ -171,13 +186,13 @@ class LitNetwork(LightningModule):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform)
-        learned = outputs[:, 0]
-        var = outputs.data[:, 1]
+        mue = outputs[0]
+        var = outputs[1]
         criterion = GaussianNLLLoss()
-        loss = criterion(learned, label, var)
+        loss = criterion(mue, label, var)
         self.log("test_loss", loss)
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters())
+        optimizer = torch.optim.Adam(self.parameters())  # Adam(self.model.parameters(), lr=0.001) is default lr
         return optimizer
