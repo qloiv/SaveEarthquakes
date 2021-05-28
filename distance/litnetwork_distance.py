@@ -120,13 +120,23 @@ class LitNetwork(LightningModule):
             ReLU(),
             MaxPool1d(kernel_size=2, stride=2),
         )
-
-        self.pooling_layer = MaxPool1d(kernel_size=2, stride=2)
+        self.cnn_layer5 = Sequential(
+            Conv1d(256, 256, kernel_size=7, stride=1, padding=3),
+            BatchNorm1d(256),
+            ReLU(),
+            MaxPool1d(kernel_size=2, stride=2),
+        )
+        self.cnn_layer6 = Sequential(
+            Conv1d(256, 256, kernel_size=5, stride=1, padding=2),
+            BatchNorm1d(256),
+            ReLU(),
+            MaxPool1d(kernel_size=2, stride=2),
+        )
 
         self.flatten_layer = Flatten()
 
         self.linear_layers1 = Sequential(
-            Linear(256 * 15, 200),  # the keras network uses 200 units, so...
+            Linear(256 * 31, 200),  # the keras network uses 200 units, so...
             # BatchNorm1d(200),
             ReLU(),
         )
@@ -148,10 +158,8 @@ class LitNetwork(LightningModule):
         x = self.cnn_layer2(x)
         x = self.cnn_layer3(x)
         x = self.cnn_layer4(x)
-
-        x = self.pooling_layer(x)
-        x = self.pooling_layer(x)
-        x = self.pooling_layer(x)
+        x = self.cnn_layer5(x)
+        x = self.cnn_layer6(x)
 
         x = self.flatten_layer(x)
 
