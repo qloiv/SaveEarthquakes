@@ -1,0 +1,234 @@
+@article{ross2018generalized,
+	title={Generalized seismic phase detection with deep learning},
+	author={Ross, Zachary E and Meier, Men-Andrin and Hauksson, Egill and Heaton, Thomas H},
+	journal={Bulletin of the Seismological Society of America},
+	volume={108},
+	number={5A},
+	pages={2894--2901},
+	year={2018},
+	publisher={Seismological Society of America}
+}
+@article{Munchmeyer2020,
+	abstract = {Magnitude estimation is a central task in seismology needed for a wide spectrum of applications ranging from seismicity analysis to rapid assessment of earthquakes. However, magnitude estimates at individual stations show significant variability, mostly due to propagation effects, radiation pattern and ambient noise. To obtain reliable and precise magnitude estimates, measurements from multiple stations are therefore usually averaged. This strategy requires good data availability, which is not always given, for example for near real time applications or for small events. We developed a method to achieve precise magnitude estimations even in the presence of only few stations. We achieve this by reducing the variability between single station estimates through a combination of optimization and machine learning techniques on a large catalogue. We evaluate our method on the large scale IPOC catalogue with {\textgreater}100 000 events, covering seismicity in the northern Chile subduction zone between 2007 and 2014. Our aim is to create a method that provides low uncertainty magnitude estimates based on physically meaningful features. Therefore we combine physics based correction functions with boosting tree regression. In a first step, we extract 110 features from each waveform, including displacement, velocity, acceleration and cumulative energy features. We correct those features for source, station and path effects by imposing a linear relation between magnitude and the logarithm of the features. For the correction terms, we define a non-parametric correction function dependent on epicentral distance and event depth and a station specific, adaptive 3-D source and path correction function. In a final step, we use boosting tree regression to further reduce interstation variance by combining multiple features. Compared to a standard, non-parametric, 1-D correction function, our method reduces the standard deviation of single station estimates by up to 57 percent of which 1 percent can be attributed to the improved correction functions, while boosting tree regression gives a further reduction of 40 percent. We analyse the resulting magnitude estimates regarding their residuals and relation to each other. The definition of a physics-based correction function enables us to inspect the path corrections and compare them to structural features. By analysing feature importance, we show that envelope and P wave derived features are key parameters for reducing uncertainties. Nonetheless the variety of features is essential for the effectiveness of the boosting tree regression. To further elucidate the information extractable from a single station trace, we train another boosting tree on the uncorrected features. This regression yields magnitude estimates with uncertainties similar to the single features after correction, but without using the earthquake location as required for applying the correction terms. Finally, we use our results to provide high precision magnitudes and their uncertainties for the IPOC catalogue.},
+	annote = {Magnitudenskalen werden vorher normiert
+	feature extraction mit boosting trees},
+	author = {M{\"{u}}nchmeyer, Jannes and Bindi, Dino and Sippl, Christian and Leser, Ulf and Tilmann, Frederik},
+	doi = {10.1093/gji/ggz416},
+	file = {:home/viola/WS2021/Literatur/4751893.pdf:pdf},
+	issn = {1365246X},
+	journal = {Geophysical Journal International},
+	keywords = {Earthquake ground motions,Site effects,South America},
+	number = {1},
+	pages = {142--159},
+	title = {{Low uncertainty multifeature magnitude estimation with 3-D corrections and boosting tree regression: Application to North Chile}},
+	volume = {220},
+	year = {2020}
+}
+@article{Zhu2019,
+	abstract = {As the number of seismic sensors grows, it is becoming increasingly difficult for analysts to pick seismic phases manually and comprehensively, yet such efforts are fundamental to earthquake monitoring. Despite years of improvements in automatic phase picking, it is difficult to match the performance of experienced analysts. A more subtle issue is that different seismic analysts may pick phases differently, which can introduce bias into earthquake locations. We present a deep-neural-network-based arrival-time picking method called "PhaseNet" that picks the arrival times of both P and S waves. Deep neural networks have recently made rapid progress in feature learning, and with sufficient training, have achieved super-human performance in many applications. PhaseNet uses three-component seismic waveforms as input and generates probability distributions of P arrivals, S arrivals and noise as output. We engineer PhaseNet such that peaks in the probability distributions provide accurate arrival times for both P and S waves. PhaseNet is trained on the prodigious available data set provided by analyst-labelled P and S arrival times from the Northern California Earthquake Data Center. The data set we use contains more than 700 000 waveform samples extracted from over 30 yr of earthquake recordings. We demonstrate that PhaseNet achieves much higher picking accuracy and recall rate than existing methods when applied to the waveforms of known earthquakes, which has the potential to increase the number of S-wave observations dramatically over what is currently available. This will enable both improved locations and improved shear wave velocity models.},
+	annote = {detects p and s waves
+	gute begr{\"{u}}ndung warum ich vielleicht auch s waves detecten sollte?
+	
+	"S-wave arrival times are particularly useful because they can be used to reduce the
+	depth-origin trade-off that can afflict earthquake locations based on
+	Pwaves alone,"
+	
+	Nutzen truncated gauss as probabilty mask fpr detection
+	bases on U-net
+	metrics: precision, recall, f1 score},
+	archivePrefix = {arXiv},
+	arxivId = {1803.03211},
+	author = {Zhu, Weiqiang and Beroza, Gregory C.},
+	doi = {10.1093/gji/ggy423},
+	eprint = {1803.03211},
+	file = {:home/viola/WS2021/Literatur/ggy423.pdf:pdf},
+	issn = {1365246X},
+	journal = {Geophysical Journal International},
+	keywords = {Body waves,Computational seismology,Earthquake monitoring and test-ban treaty verifica,Fuzzy logic,Neural networks,Time-series analysis},
+	number = {1},
+	pages = {261--273},
+	publisher = {Oxford University Press},
+	title = {{PhaseNet: A deep-neural-network-based seismic arrival-time picking method}},
+	volume = {216},
+	year = {2019}
+}
+@article{Mousavi2020,
+	abstract = {In this study, we present a fast and reliable method for end-to-end estimation of earthquake magnitude from raw waveforms recorded at single stations. We design a regressor (MagNet) composed of convolutional and recurrent neural networks that is not sensitive to the data normalization, hence waveform amplitude information can be utilized during the training. The network can learn distance-dependent and site-dependent functions directly from the training data. Our model can predict local magnitudes with an average error close to zero and standard deviation of {\~{}}0.2 based on single-station waveforms without instrument response correction. We test the network for both local and duration magnitude scales and show a station-based learning can be an effective approach for improving the performance. The proposed approach has a variety of potential applications from routine earthquake monitoring to early warning systems.},
+	annote = {Magnitudenvorhersage
+	single station
+	mit lstms
+	auf unnormalisierten Daten},
+	archivePrefix = {arXiv},
+	arxivId = {1911.05975},
+	author = {Mousavi, S. Mostafa and Beroza, Gregory C.},
+	doi = {10.1029/2019GL085976},
+	eprint = {1911.05975},
+	file = {:home/viola/WS2021/Literatur/16651611.pdf:pdf},
+	issn = {19448007},
+	journal = {Geophysical Research Letters},
+	keywords = {deep learning,earthquake,machine learning,magnitude,single-station,source characterization},
+	number = {1},
+	pages = {1--7},
+	title = {{A Machine-Learning Approach for Earthquake Magnitude Estimation}},
+	volume = {47},
+	year = {2020}
+}
+@article{Lomax2019,
+	abstract = {Effective early warning, emergency response, and information dissemination for earthquakes and tsunamis require rapid characterization of an earthquake's location, size, and other parameters, usually provided by real-time seismogram analysis using established, rule-based, seismological procedures. Powerful, new machine learning (ML) tools analyze basic data using little or no rule-based knowledge, and an ML deep convolutional neural network (CNN) can operate directly on seismogram waveforms with little preprocessing and without feature extraction. How a CNN will perform for rapid automated earthquake detection and characterization using short singlestation waveforms is an issue of fundamental importance for earthquake monitoring. For an initial investigation of this issue, we adapt an existing CNN for local earthquake detection and epicentral classification using single-station waveforms (Perol et al., 2018), to form a new CNN, ConvNetQuake{\_}INGV, to characterize earthquakes at any distance (local to far-teleseismic). ConvNetQuake{\_}INGV operates directly on 50-s three-component broadband single-station waveforms to detect seismic events and obtain binned probabilistic estimates of the distance, azimuth, depth, and magnitude of the event. The best performance of ConvNetQuake{\_}INGV is obtained using a last convolutional layer with fewer nodes than the number of output classifications, a form of information bottleneck. We show that ConvNetQuake{\_}INGV detects very well (accuracy 87{\%}) and characterizes moderately well earthquakes over a broad range of distances and magnitudes, and we analyze outlier results and indications of overfitting of the CNN training data.We find weak evidence that the CNNis performing more than high-dimensional regression and pattern recognition, and is generalizing information or learning, to provide useful characterization of new events not represented in the training data. We expect that real-time ML procedures such as ConvNetQuake{\_}INGV, perhaps incorporating rule-based knowledge, will ultimately prove valuable for rapid detection and characterization of earthquakes for earthquake response and tsunami early warning.},
+	annote = {The authors derive distance, magnitude , .. directly from the waveforms
+	explorational work
+	this could be a good algorithms for comparing results},
+	author = {Lomax, Anthony and Michelini, Alberto and Jozinovi{\'{c}}, Dario},
+	doi = {10.1785/0220180311},
+	file = {:home/viola/WS2021/Literatur/srl-2018311.1.pdf:pdf},
+	issn = {19382057},
+	journal = {Seismological Research Letters},
+	number = {2 A},
+	pages = {517--529},
+	title = {{An Investigation of Rapid Earthquake Characterization Using Single-Station Waveforms and a Convolutional Neural Network}},
+	volume = {90},
+	year = {2019}
+}
+@article{Mousavi2020a,
+	abstract = {We present a deep learning method for single-station earthquake location, which we approach as a regression problem using two separate Bayesian neural networks. We use a multi-task temporal-convolutional neural network to learn epicentral distance and P travel time from 1-minute seismograms. The network estimates epicentral distance and P travel time with absolute mean errors of 0.23 km and 0.03 s respectively, along with their epistemic and aleatory uncertainties. We design a separate multi-input network using standard convolutional layers to estimate the back-azimuth angle, and its epistemic uncertainty. This network estimates the direction from which seismic waves arrive to the station with a mean error of 1 degree. Using this information, we estimate the epicenter, origin time, and depth along with their confidence intervals. We use a global dataset of earthquake signals recorded within 1 degree ({\~{}}112 km) from the event to build the model and to demonstrate its performance. Our model can predict epicenter, origin time, and depth with mean errors of 7.3 km, 0.4 second, and 6.7 km respectively, at different locations around the world. Our approach can be used for fast earthquake source characterization with a limited number of observations, and also for estimating location of earthquakes that are sparsely recorded -- either because they are small or because stations are widely separated.},
+	annote = {Netzwerk berechnet Distanz zum Epizentrum und "P-travel time"
+	Single Station
+	Uncertainties werden mitgelernt, deswegen bayesian neural networks
+	
+	lernt mapping von Seismogramm mit eingetragenen P und S arrivals zu Distanz zum Epizetrum, P travel time..},
+	archivePrefix = {arXiv},
+	arxivId = {1912.01144},
+	author = {Mousavi, S. Mostafa and Beroza, Gregory C.},
+	doi = {10.1109/tgrs.2020.2988770},
+	eprint = {1912.01144},
+	file = {:home/viola/WS2021/Literatur/1912.01144.pdf:pdf},
+	issn = {0196-2892},
+	journal = {IEEE Transactions on Geoscience and Remote Sensing},
+	pages = {1--14},
+	title = {{Bayesian-Deep-Learning Estimation of Earthquake Location From Single-Station Observations}},
+	year = {2020}
+}
+@article{Munchmeyer2021,
+	abstract = {Precise real time estimates of earthquake magnitude and location are essential for early warning and rapid response. While recently multiple deep learning approaches for fast assessment of earthquakes have been proposed, they usually rely on either seismic records from a single station or from a fixed set of seismic stations. Here we introduce a new model for real-time magnitude and location estimation using the attention based transformer networks. Our approach incorporates waveforms from a dynamically varying set of stations and outperforms deep learning baselines in both magnitude and location estimation performance. Furthermore, it outperforms a classical magnitude estimation algorithm considerably and shows promising performance in comparison to a classical localization algorithm. In this work, we furthermore conduct a comprehensive study of the requirements on training data, the training procedures and the typical failure modes using three diverse and large scale data sets. Our analysis gives several key insights. First, we can precisely pinpoint the effect of large training data; for example, a four times larger training set reduces the required time for real time assessment by a factor of four. Second, the basic model systematically underestimates large magnitude events. This issue can be mitigated by incorporating events from other regions into the training through transfer learning. Third, location estimation is highly precise in areas with sufficient training data, but is strongly degraded for events outside the training distribution. Our analysis suggests that these characteristics are not only present for our model, but for most deep learning models for fast assessment published so far. They result from the black box modeling and their mitigation will likely require imposing physics derived constraints on the neural network.},
+	annote = {hinweise, dass modelle gro{\ss}e magnituden untersch{\"{a}}tzen
+	beschreibung des chile datensatzes sippl et al 
+	mit plots
+	
+	multiple stations, feature extraction, feature combination with transformer network
+	
+	learning magnitude and location trogether did not imporve training
+	
+	inverse saturation effect},
+	archivePrefix = {arXiv},
+	arxivId = {2101.02010},
+	author = {M{\"{u}}nchmeyer, Jannes and Bindi, Dino and Leser, Ulf and Tilmann, Frederik},
+	eprint = {2101.02010},
+	file = {:home/viola/WS2021/Literatur/2101.02010.pdf:pdf},
+	number = {2019},
+	title = {{Earthquake magnitude and location estimation from real time seismic waveforms with a transformer network}},
+	url = {http://arxiv.org/abs/2101.02010},
+	year = {2021}
+}
+@article{ross2018generalized,
+	abstract = {To optimally monitor earthquake-generating processes, seismologists have sought to lower detection sensitivities ever since instrumental seismic networks were started about a century ago. Recently, it has become possible to search continuous waveform archives for replicas of previously recorded events (i.e., template matching), which has led to at least an order of magnitude increase in the number of detected earthquakes and greatly sharpened our view of geological structures. Earthquake catalogs produced in this fashion, however, are heavily biased in that they are completely blind to events for which no templates are available, such as in previously quiet regions or for very large-magnitude events. Here, we show that with deep learning, we can overcome such biases without sacrificing detection sensitivity. We trained a convolutional neural network (ConvNet) on the vast hand-labeled data archives of the Southern California Seismic Network to detect seismic body-wave phases. We show that the ConvNet is extremely sensitive and robust in detecting phases even when masked by high background noise and when the ConvNet is applied to new data that are not represented in the training set (in particular, very largemagnitude events). This generalized phase detection framework will significantly improve earthquake monitoring and catalogs, which form the underlying basis for a wide range of basic and applied seismological research.},
+	annote = {- Klassifizieren einer Wellenform in P-Welle, S-Welle oder Rauschen
+	- Unterteilung in 4s Zeitabschnitte
+	- funktionierte auch gut beim Erkennen gr{\"{o}}{\ss}erer Beben
+	- der Algorithmus nimmt war, wie eine Welle aussieht
+	
+	In einem Teil werden sich {\"{u}}berlappende Wellen beschrieben, da ist mir noch nicht ganz klar, was gemeint ist.},
+	archivePrefix = {arXiv},
+	arxivId = {1805.01075},
+	author = {Ross, Zachary E. and Meier, Men Andrin and Hauksson, Egill and Heaton, Thomas H.},
+	doi = {10.1785/0120180080},
+	eprint = {1805.01075},
+	file = {:home/viola/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Ross et al. - 2018 - Generalized seismic phase detection with deep learning.pdf:pdf},
+	issn = {19433573},
+	journal = {Bulletin of the Seismological Society of America},
+	number = {5},
+	pages = {2894--2901},
+	publisher = {Seismological Society of America},
+	title = {{Generalized seismic phase detection with deep learning}},
+	volume = {108},
+	year = {2018}
+}
+@article{Zollo2006,
+	abstract = {We show that the low-pass filtered, peak amplitudes of initial P- and S-wave seismic signals recorded in the vicinity of an occuring earthquake source correlates with the earthquake magnitude and may be used for real-time estimation of the event size in seismic early warning applications. The earthquake size can be therefore estimated using only a couple of seconds of signal from the P- or S-wave onsets, i.e, while the rupture itself is still propagating and rupture dimension is far from complete. We argue that dynamic stress release and/or slip duration on the fault in the very early stage of seismic fracture, scales both with the observed peak amplitude and with the elastic energy available for fracture propagation. The probability that a fracture grows to a larger size should scale with the energy initially available. Copyright 2006 by the American Geophysical Union.},
+	annote = {S arrival muss vorher bestimmt werden
+	Zus{\"{a}}tzlich sch{\"{a}}tzen die autoren die ankunft der erste p-welle
+	regressionskurve wird berechnet},
+	author = {Zollo, Aldo and Lancieri, Maria and Nielsen, Stefan},
+	doi = {10.1029/2006GL027795},
+	file = {:home/viola/WS2021/Literatur/2006GL027795.pdf:pdf},
+	issn = {00948276},
+	journal = {Geophysical Research Letters},
+	keywords = {http://dx.doi.org/10.1029/2006GL027795, doi:10.102,time magnitude estimation},
+	number = {23},
+	pages = {2--7},
+	title = {{Earthquake magnitude estimation from peak amplitudes of very early seismic signals on strong motion records}},
+	volume = {33},
+	year = {2006}
+}
+@article{Wu2006,
+	abstract = {Prompted by recent success in the research and application of earthquake early warning systems, we conducted an investigation into the relationship between the magnitudes of earthquakes and the properties of the first three seconds of the P waves at a single station. Using waveforms at station NACB of the Broadband Array in Taiwan for Seismology from 46 earthquakes within 100-km epicentral distance, we found a linear correlation between the magnitudes and the logarithmic characteristic periods of the initial P waves for earthquakes up to magnitude 6.5. We also detected a deterministic relationship between the magnitudes and the peak amplitudes of the initial P waves for earthquakes of magnitude M {\textless} 6.5. While further study needs to be done on the behavior of the initial P-wave peak amplitudes from larger earthquakes, we propose here that the characteristic periods and peak amplitudes of the first three seconds of the P waves be used jointly in onsite (single-station) earthquake early warning operations. Copyright 2006 by the American Geophysical Union.},
+	annote = {parametric approach
+	with hypozentral distance and peak displacement},
+	author = {Wu, Yih Min and Yen, Hsin Yi and Zhao, Li and Huang, Bor Shouh and Liang, Wen Tzong},
+	doi = {10.1029/2005GL025395},
+	file = {:home/viola/WS2021/Literatur/2005GL025395.pdf:pdf},
+	issn = {00948276},
+	journal = {Geophysical Research Letters},
+	number = {5},
+	pages = {4--7},
+	title = {{Magnitude determination using initial P waves: A single-station approach}},
+	volume = {33},
+	year = {2006}
+}
+@article{Kuyuk2013,
+	abstract = {We examine five different methods to estimate an earthquake's magnitude using only P wave data for use in earthquake early warning systems. We test two input parameters: the maximum predominant period of the P wave ($\tau$pmax) and the displacement amplitude of the P wave's vertical component (Pd). We apply our algorithms to 174 earthquakes 3.0 {\textless} M {\textless} 8.0 from California and Japan that have also been used in previous calibration studies. We also apply them to 1992 0.2 {\textless} M {\textless} 5.7 earthquakes that were processed by the real-time Earthquake Alarm Systems in California. We find that $\tau$pmax does not scale with magnitude for small earthquakes (M {\textless} 3) and is less accurate for large-magnitude earthquakes than using Pd alone. We derive a global scaling relation between Pd and magnitude and conclude that this global relationship provides the most accurate and robust magnitude estimate. This relationship could be applied in earthquake source zones around the world. {\textcopyright}2013. American Geophysical Union. All Rights Reserved.},
+	annote = {MGPd =1.23 log(Pd)+ 1.38 log(E) + 5.39. 
+	
+	E = epicentral distance
+	Pd = peak displacement
+	up to M {\~{}} 7 magnitude},
+	author = {Kuyuk, Huseyin Serdar and Allen, Richard M.},
+	doi = {10.1002/2013GL058580},
+	file = {:home/viola/WS2021/Literatur/KuyukAllen-GlobalEEWMagRelation-GRL-2013.pdf:pdf},
+	issn = {00948276},
+	journal = {Geophysical Research Letters},
+	keywords = {P wave amplitude,P wave frequency,earthquake early warning,magnitude estimation},
+	month = {dec},
+	number = {24},
+	pages = {6329--6333},
+	title = {{A global approach to provide magnitude estimates for earthquake early warning alerts}},
+	url = {http://doi.wiley.com/10.1002/2013GL058580},
+	volume = {40},
+	year = {2013}
+}
+@article{Li2018,
+	abstract = {Performance of earthquake early warning systems suffers from false alerts caused by local impulsive noise from natural or anthropogenic sources. To mitigate this problem, we train a generative adversarial network (GAN) to learn the characteristics of first-arrival earthquake P waves, using 300,000 waveforms recorded in southern California and Japan. We apply the GAN critic as an automatic feature extractor and train a Random Forest classifier with about 700,000 earthquake and noise waveforms. We show that the discriminator can recognize 99.2{\%} of the earthquake P waves and 98.4{\%} of the noise signals. This state-of-the-art performance is expected to reduce significantly the number of false triggers from local impulsive noise. Our study demonstrates that GANs can discover a compact and effective representation of seismic waves, which has the potential for wide applications in seismology.},
+	annote = {Detektion von Erdbeben (P-Wellen)
+	mit einem GAN?? und random forest classifier},
+	author = {Li, Zefeng and Meier, Men Andrin and Hauksson, Egill and Zhan, Zhongwen and Andrews, Jennifer},
+	doi = {10.1029/2018GL077870},
+	file = {:home/viola/WS2021/Literatur/Li{\_}etal{\_}GRL{\_}2018.pdf:pdf},
+	issn = {19448007},
+	journal = {Geophysical Research Letters},
+	keywords = {earthquake early warning,machine learning,seismic waves},
+	number = {10},
+	pages = {4773--4779},
+	title = {{Machine Learning Seismic Wave Discrimination: Application to Earthquake Early Warning}},
+	volume = {45},
+	year = {2018}
+}
+
+
+@book{IntroEarthquakes,
+	title = "Introduction to Seismology, Earthquakes, and Earth Structure",
+	author = "Seth Stein and M Wysession",
+	editor = "Seth Stein",
+	year = "2003",
+	language = "English",
+	publisher = "Blackwell Publishing",
+	
+}

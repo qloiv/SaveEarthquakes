@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 576 447" font-weight="bold" font-size="32px" font-family="Liberation Sans, sans-serif">
+
+  <title>Epicenter Diagram</title>
+
+  <metadata>
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <cc:Work rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <dc:source rdf:resource="https://commons.wikimedia.org/wiki/File:Epicenter.png"/>
+        <dc:creator rdf:resource="https://commons.wikimedia.org/wiki/User:Sam_Hocevar"/>
+        <dc:contributor>
+          <rdf:Bag>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/User:TFerenczy"/>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/User:Ansate"/>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/User:NikNaks"/>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/User:Lies_Van_Rompaey"/>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/User:Rostik252004"/>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/User:%D0%90%D1%82%D0%B0"/>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/User:Glrx"/>
+          </rdf:Bag>
+        </dc:contributor>
+        <dc:date>2014-05-11</dc:date>
+        <dc:publisher rdf:resource="http://commons.wikimedia.org"/>
+        <cc:attributionURL rdf:resource="https://commons.wikimedia.org/wiki/File:Epicenter_Diagram.svg"/>
+        <cc:license>
+          <rdf:Alt>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/Commons:GNU_Free_Documentation_License,_version_1.2"/>
+            <rdf:li rdf:resource="https://creativecommons.org/licenses/by-sa/1.0/deed.en"/>
+          </rdf:Alt>
+        </cc:license>
+      </cc:Work>
+      <cc:Work rdf:about="https://commons.wikimedia.org/wiki/File:Epicenter.png">
+        <cc:creator rdf:resource="https://commons.wikimedia.org/wiki/User:Sam_Hocevar"/>
+        <cc:date>2005-04-12</cc:date>
+        <cc:license>
+          <rdf:Alt>
+            <rdf:li rdf:resource="https://commons.wikimedia.org/wiki/Commons:GNU_Free_Documentation_License,_version_1.2"/>
+            <rdf:li rdf:resource="https://creativecommons.org/licenses/by-sa/1.0/deed.en"/>
+            <rdf:li rdf:resource="https://creativecommons.org/licenses/by-sa/3.0/deed.en"/>
+          </rdf:Alt>
+        </cc:license>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+
+  <defs>
+    <clipPath id="myClip">
+      <rect width="576" height="447"/>
+    </clipPath>
+    <g id="tree">
+      <title>tree</title>
+      <rect height="56.765717" width="12.906872" stroke-miterlimit="10" y="46" x="71" fill="#803300"/>
+      <path fill="#008000" d="M77,13.34375l-15,26h5.09375l-12.09375,20.96875h9l-9,15.59375h45l-9-15.59375h9l-12.09375-20.96875h5.09375l-16-26z"/>
+    </g>
+  </defs>
+
+  <rect height="447" width="576" y="0" x="0" fill="#99e5ff">
+    <title>sky</title>
+  </rect>
+  <rect height="341.5" width="576" y="105.5" x="0" fill="#9d3f00">
+    <title>earth</title>
+  </rect>
+
+  <line stroke-width="4" x1="376.5" y1="105.5" stroke="#000" x2="376.5" stroke-dasharray="8,8" y2="326.5"/>
+
+  <path d="M668.5,105.5-39.447739,105.35338,667.5,501.5" stroke="#000" stroke-width="6" fill="none" clip-path="url(#myClip)">
+    <title>ground level and fault</title>
+  </path>
+
+  <path d="m376.5,86.333c-11.647,0-21.085,9.624-21.085,21.5s9.438,21.5,21.085,21.5c11.643,0,21.085-9.624,21.085-21.5s-9.442-21.5-21.085-21.5zm0,35.423c-8.007,0-13.19783-5.936-13.19783-13.255,0-7.32,5.19083-14.498982,13.19783-14.498982,8.008,0,13.49378,7.178982,13.49378,14.498982,0,7.319-5.48578,13.255-13.49378,13.255z" stroke="#000" stroke-miterlimit="10" stroke-width="4" fill="#ffe000">
+    <title>epicenter ring</title>
+  </path>
+
+  <polygon stroke="#008" points="386.206,312.577,404.786,291.942,394.598,317.775,419.374,305.249,400.547,325.651,428.181,322.923,403.25,335.148,430,342.583,402.337,344.979,424.594,361.577,397.937,353.818,412.693,377.335,390.641,360.466,395.911,387.727,381.435,364.031,376.5,391.356,371.565,364.031,357.089,387.727,362.356,360.466,340.303,377.335,355.063,353.818,328.402,361.577,350.659,344.979,323,342.583,349.75,335.148,324.822,322.923,352.453,325.651,333.622,305.249,358.402,317.775,348.216,291.942,366.794,312.577,366.627,284.812,376.5,310.766,386.369,284.812" stroke-width="4" fill="#ff2a00">
+    <title>hypocenter burst</title>
+  </polygon>
+
+  <path d="m376.5,316.34236c-11.647,0-21.085,9.624-21.085,21.5s9.438,21.5,21.085,21.5c11.643,0,21.085-9.624,21.085-21.5s-9.442-21.5-21.085-21.5zm0,35.423c-8.007,0-13.19783-5.936-13.19783-13.255,0-7.32,5.19083-14.49899,13.19783-14.49899,8.008,0,13.49378,7.17899,13.49378,14.49899,0,7.319-5.48578,13.255-13.49378,13.255z" stroke="#000" stroke-width="4" fill="#ffe000">
+    <title>hypocenter ring</title>
+  </path>
+
+  <use xlink:href="#tree"/>
+  <use xlink:href="#tree" transform="translate(76,0)"/>
+  <use xlink:href="#tree" transform="translate(172,0)"/>
+
+  <g style="text-anchor:middle">
+    <switch class="Q106032" transform="translate(460,67)">
+      <text systemLanguage="cs" id="trsvg51"><tspan id="trsvg1">Epicentrum</tspan></text>
+      <text systemLanguage="en" id="trsvg52"><tspan id="trsvg2">epicenter</tspan></text>
+      <text systemLanguage="eo" id="trsvg53"><tspan id="trsvg3">epicentro</tspan></text>
+      <text systemLanguage="es" id="trsvg54"><tspan id="trsvg4">Epicentro</tspan></text>
+      <text systemLanguage="eu" id="trsvg55"><tspan id="trsvg5">epizentroa</tspan></text>
+      <text systemLanguage="fr" id="trsvg56"><tspan id="trsvg6">épicentre</tspan></text>
+      <text systemLanguage="nl" id="trsvg57"><tspan id="trsvg7">Epicentrum</tspan></text>
+      <text systemLanguage="ru" id="trsvg58"><tspan id="trsvg8">эпицентр</tspan></text>
+      <text systemLanguage="uk" id="trsvg59"><tspan id="trsvg9">Епіцентр</tspan></text>
+      <text systemLanguage="ca" id="trsvg60"><tspan id="trsvg10">epicentre</tspan></text>
+      <text systemLanguage="el" id="trsvg61"><tspan id="trsvg11">επίκεντρο</tspan></text>
+      <text systemLanguage="de" id="trsvg62"><tspan id="trsvg12">Epizentrum</tspan></text>
+      
+	<text id="trsvg63-he" systemLanguage="he"><tspan id="trsvg13-he">אפיצנטר</tspan></text><text id="trsvg63"><tspan id="trsvg13">epicenter</tspan></text></switch>
+  </g>
+
+  <g style="text-anchor:middle">
+    <switch class="Q107410" transform="translate(195,357)">
+      <text systemLanguage="cs" id="trsvg64"><tspan id="trsvg14">Hypocentrum</tspan><tspan x="0" y="40" id="trsvg15">(Ohnisko)</tspan></text>
+      <text systemLanguage="en" id="trsvg65"><tspan id="trsvg16">hypocenter</tspan><tspan x="0" y="40" id="trsvg17">(focus)</tspan></text>
+      <text systemLanguage="eo" id="trsvg66"><tspan id="trsvg18">hipocentro</tspan><tspan x="0" y="40" id="trsvg19">(fokuso)</tspan></text>
+      <text systemLanguage="es" id="trsvg67"><tspan id="trsvg20">Hipocentro</tspan><tspan x="0" y="40" id="trsvg21">(Foco)</tspan></text>
+      <text systemLanguage="eu" id="trsvg68"><tspan id="trsvg22">hipozentroa</tspan></text>
+      <text systemLanguage="fr" id="trsvg69"><tspan id="trsvg23">hypocentre</tspan></text>
+      <text systemLanguage="nl" id="trsvg70"><tspan id="trsvg24">Hypocentrum</tspan><tspan x="0" y="40" id="trsvg25">(breuk)</tspan></text>
+      <text systemLanguage="ru" id="trsvg71"><tspan id="trsvg26">гипоцентр</tspan><tspan x="0" y="40" id="trsvg27">(ё)</tspan></text>
+      <text systemLanguage="uk" id="trsvg72"><tspan id="trsvg28">Гіпоцентр</tspan><tspan x="0" y="40" id="trsvg29">(Фокус)</tspan></text>
+      <text systemLanguage="ca" id="trsvg73"><tspan id="trsvg30">hipocentre</tspan><tspan x="0" y="40" id="trsvg31">(focus)</tspan></text>
+      <text systemLanguage="el" id="trsvg74"><tspan id="trsvg32">υπόκεντρο</tspan><tspan x="0" y="40" id="trsvg33">(εστία)</tspan></text>
+      <text systemLanguage="de" id="trsvg75"><tspan id="trsvg34">Hypozentrum</tspan><tspan x="0" y="40" id="trsvg35">(Herd)</tspan></text>
+	  
+	<text id="trsvg76-he" systemLanguage="he"><tspan id="trsvg36-he">מוקד רעידת האדמה</tspan><tspan x="0" y="40" id="trsvg37-he">היפוצנטר</tspan></text><text id="trsvg76"><tspan id="trsvg36">hypocenter</tspan><tspan x="0" y="40" id="trsvg37">(focus)</tspan></text></switch>
+  </g>
+
+  <g transform="rotate(30)">
+    <switch class="Q47089" transform="translate(264,98)">
+      <text systemLanguage="cs" id="trsvg77"><tspan id="trsvg38">zlom</tspan></text>
+      <text systemLanguage="en" id="trsvg78"><tspan id="trsvg39">fault</tspan></text>
+      <text systemLanguage="eo" id="trsvg79"><tspan id="trsvg40">faŭlto</tspan></text>
+      <text systemLanguage="es" id="trsvg80"><tspan id="trsvg41">falla</tspan></text>
+      <text systemLanguage="eu" id="trsvg81"><tspan id="trsvg42">faila</tspan></text>
+      <text systemLanguage="fr" id="trsvg82"><tspan id="trsvg43">faille</tspan></text>
+      <text systemLanguage="nl" id="trsvg83"><tspan id="trsvg44">breuk</tspan></text>
+      <text systemLanguage="ru" id="trsvg84"><tspan id="trsvg45">разлом</tspan></text>
+      <text systemLanguage="uk" id="trsvg85"><tspan id="trsvg46">розлом</tspan></text>
+      <text systemLanguage="ca" id="trsvg86"><tspan id="trsvg47">falla</tspan></text>
+      <text systemLanguage="el" id="trsvg87"><tspan id="trsvg48">ρήγμα</tspan></text>
+      <text systemLanguage="de" id="trsvg88"><tspan id="trsvg49">Verwerfung</tspan></text>
+	  
+	<text id="trsvg89-he" systemLanguage="he"><tspan id="trsvg50-he">העתק</tspan></text><text id="trsvg89"><tspan id="trsvg50">fault</tspan></text></switch>
+  </g>
+
+</svg>

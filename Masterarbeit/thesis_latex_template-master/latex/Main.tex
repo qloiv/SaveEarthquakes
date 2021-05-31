@@ -1,0 +1,23 @@
+\documentclass[thesis.tex]{subfiles}
+\begin{document}
+
+\chapter{Algorithm}\label{chap:basics}
+
+\section{Algorithm Design and requirements}
+Our aim is to design a framework, which is in general suitable for early warning. Therefore we decided to firstly implement an algorithm which detects an incoming earthquake, as this makes it easier to eventually use the whole project later and gives us good reason to continue computing the magnitude, if we are sure, that there is really an earthquake. As time is also an important factor, we just use data of a single station. While it is much more reliable to use a network of seismometers, we omitted this due to time and complexity overhead. Plus, the project was designed to work on small devices, which might not be able to process lots of data at once. As we wanted a reliable prediction, which would be able to include the uncertainty of the dataset, we want to at least capture the uncertainty of our deep neural network by not learning a distinctive value, but a Gauss function with an expected value and a variance, representing the uncertainty.
+\section{Data overview}
+\subsection{The Dataset}
+\subsection{Data preparation}
+Before using the seismometer data as an network input, we are preparing it for neural network use. This means we normalize it between 0 and 1, remove any trend by aligning start and end point at zero horizontally and filtering it with a two factor butterworth filter. We are doing that separately for every input window. 
+\section{Detecting the earthquake}
+
+\section{Ground-truth algorithm}
+The algorithm which we will use to compare our new technique to, is a simple CNN network, similar to the network we will use in our algorithm. It directly gives us a value for the magnitude from a 20 second seismometer input.
+Our proposed algorithm will be evaluated against a basic algorithm on the same dataset. 
+\section{Proposed algorithm}
+The proposed algorithm consists of two parts: At first we take the whole 20 second input and compute a distance to the earthquake. Then we estimate the magnitude by using the formula proposed in \todo{cite} 
+
+\section{Bringing it all together}
+´
+\subfilebib % Makes bibliography available when compiling as subfile
+\end{document}
