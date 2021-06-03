@@ -136,8 +136,8 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
 
     station_stream = torch.from_numpy(waveform[None])
     outputs = model(station_stream)
-    learned = outputs[:, 0]
-    var = outputs.data[:, 1]
+    learned = outputs[0]
+    var = outputs[1]
     print(learned, var)
 
     sigma = np.sqrt(var)
@@ -199,6 +199,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
         axs[2].axvline(random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5)
 
     fig.savefig("TestOne: Results")
+    h5data.close()
 
 
 def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
@@ -338,6 +339,7 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
 
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
     fig.savefig("predict plot")
+    h5data.close()
 
 
 learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
