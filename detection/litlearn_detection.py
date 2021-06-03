@@ -1,14 +1,17 @@
 from __future__ import print_function, division
 
 import argparse
+import os
 from random import randrange
 
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
+import obspy
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from obspy import UTCDateTime
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 
@@ -52,6 +55,129 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
 
     # test (pass in the model)
     trainer.test(model, datamodule=dm)
+
+
+def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, inv_path):
+    # load catalog with random test event
+    catalog = pd.read_csv(catalog_path)
+    test = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test))
+    print(idx)
+    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", 'P_PICK']]
+
+    # load network
+    split_key = "test_files"
+    file_path = hdf5_path
+    h5data = h5py.File(file_path, "r").get(split_key)
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+
+    # load hdf5 waveform
+    raw_waveform = np.array(h5data.get(event + "/" + station))
+    seq_len = 4 * 100  # *sampling rate
+    p_pick_array = 3000  # ist bei 3000 weil obspy null indiziert arbeitet, also die Startzeit beginnt bei array 0
+    # wir haben eine millisekunde zu viel, weil ich im preprocessing 30s vor und nach dem p Pick auswähle
+    random_point = np.random.randint(seq_len)
+    waveform = raw_waveform[:, p_pick_array - random_point: p_pick_array + (seq_len - random_point)]
+
+    # load obpsy waveforms
+    o_raw_waveform = obspy.read(
+        os.path.join(waveform_path, f"{event}.mseed")
+        # we don t need to check whether this exists, because we filtered by waveforms before
+    )
+    o_waveform = o_raw_waveform.select(station=station, channel="HH*")
+    o_station_stream = o_waveform.slice(starttime=UTCDateTime(p_pick) - random_point / 100,  #
+                                        endtime=UTCDateTime(p_pick) + (
+                                                    4.00 - random_point / 100) - 0.01)  # -0.01 deletes the last item, therefore enforcing array indexing
+
+    # load inventory
+    inv = obspy.read_inventory(inv_path)
+    inv_selection = inv.select(station=station, channel="HH*")
+
+    new_stream = o_station_stream.copy()
+    assert np.all(o_station_stream[0].data == waveform[2])
+    # new_stream[0].data = waveform[2]
+    assert np.all(o_station_stream[1].data == waveform[1])
+    # new_stream[1].data = waveform[1]
+    assert np.all(o_station_stream[2].data == waveform[0])
+    # new_stream[2].data = waveform[0]
+
+    # the same routines as in test_one
+    fig, axs = plt.subplots(3)
+    fig.suptitle("Input of Detection Network - full Trace")
+    axs[0].plot(raw_waveform[0], 'r')
+    axs[1].plot(raw_waveform[1], 'b')
+    axs[2].plot(raw_waveform[2], 'g')
+    fig.savefig("TestOneD:Full Trace")
+
+    fig, axs = plt.subplots(3)
+    fig.suptitle("Cut Out Input")
+    axs[0].plot(waveform[0], 'r')
+    axs[1].plot(waveform[1], 'b')
+    axs[2].plot(waveform[2], 'g')
+    fig.savefig("TestOneD: Input")
+    d0 = obspy_detrend(waveform[0])
+    d1 = obspy_detrend(waveform[1])
+    d2 = obspy_detrend(waveform[2])
+    fig, axs = plt.subplots(3)
+    fig.suptitle("After Detrending")
+    axs[0].plot(d0, 'r')
+    axs[1].plot(d1, 'b')
+    axs[2].plot(d2, 'g')
+    fig.savefig("TestOneD:Detrended")
+
+    # set filter
+    filt = signal.butter(
+        2, 2, btype="highpass", fs=100, output="sos"
+    )
+    f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+    f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+    f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+    fig, axs = plt.subplots(3)
+    fig.suptitle("After Detrending, then Filtering")
+    axs[0].plot(f0, 'r')
+    axs[1].plot(f1, 'b')
+    axs[2].plot(f2, 'g')
+    fig.savefig("TestOneD:Detrended and Filtered")
+
+    waveform = np.stack((f0, f1, f2))
+    waveform, _ = normalize_stream(waveform)
+    fig, axs = plt.subplots(3)
+    fig.suptitle("After Detrending->Filtering->Normalizing")
+
+    axs[0].plot(waveform[0], 'r')
+    axs[1].plot(waveform[1], 'b')
+    axs[2].plot(waveform[2], 'g')
+    fig.savefig("TestOneD: Detrended, Filtered and Normalized")
+
+    station_stream = torch.from_numpy(waveform[None])
+    out = model(station_stream)
+    _, predicted = torch.max(out, 1)
+    print(predicted)
+
+    # compute and plot displacement
+    # relying on asserts from before
+    new_stream[0].data = waveform[2]
+    new_stream[1].data = waveform[1]
+    new_stream[2].data = waveform[0]
+    disp = new_stream.copy().remove_response(inventory=inv_selection, pre_filt=None, output="DISP")
+    disp.plot()
+
+    fig, axs = plt.subplots(6)
+    fig.suptitle("Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted)))
+    axs[0].plot(waveform[0], 'r')
+    axs[1].plot(waveform[1], 'b')
+    axs[2].plot(waveform[2], 'g')
+    axs[0].axvline(random_point, color="black")
+    axs[1].axvline(random_point, color="black")
+    axs[2].axvline(random_point, color="black")
+    axs[3].plot(disp[0].data)
+    axs[4].plot(disp[1].data)
+    axs[5].plot(disp[2].data)
+
+    fig.savefig("TestOneD: Results")
 
 
 def test_one(catalog_path, checkpoint_path, hdf5_path):
@@ -295,6 +421,11 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     # plt.show()
     # plt.savefig("current_plot")
 
+
+test_one_displacement(catalog_path=cp, hdf5_path=hp,
+                      checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt",
+                      waveform_path="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
+                      inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml")
 
 # learn(cp, hp, mp)
 # predict(catalog_path=cp, hdf5_path=hp,
