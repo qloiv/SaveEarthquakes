@@ -45,11 +45,12 @@ def resample_trace(trace, sampling_rate):
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/catalog_ma.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-csvp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
-hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
+csvp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
+hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
+inv_path = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 
 
-def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
+def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, inventory):
     # os.remove(csv_path)
     if os.path.exists(
             hdf5_path
@@ -106,7 +107,9 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
         station_stream = station_stream.slice(
             starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30)
         )
-
+        # station_stream.plot()
+        station_stream.remove_sensitivity(inventory)
+        # station_stream.plot()
         if len(station_stream) < 3:
             stream_miss = stream_miss + 1
             # print("Percentage of data left because stream or trace is missing from the waveform file:
@@ -144,7 +147,7 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
             continue
 
     hf.close()
-    new_frame.to_csv(csv_path)
+    new_frame.to_csv(new_catalog_path)
     print(
         "After having a look at every trace ",
         len(new_frame) / data_length,
@@ -173,7 +176,7 @@ def preprocess(catalog_path, waveform_path, csv_path, hdf5_path):
     )
 
 
-preprocess(cp, wp, csvp, hp)
+preprocess(cp, wp, csvp, hp, inv_path)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
@@ -181,6 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--waveform_path", type=str, default=wp)
     parser.add_argument("--csv_path", type=str, default=csvp)
     parser.add_argument("--hdf5_path", type=str, default=hp)
+    parser.add_argument("--hdf5_path", type=str, default=inv_path)
     args = parser.parse_args()
     action = args.action
 
@@ -188,6 +192,7 @@ if __name__ == "__main__":
         preprocess(
             catalog_path=args.catalog_path,
             waveform_path=args.waveform_path,
-            csv_path=args.csv_path,
+            new_catalog_path=args.csv_path,
             hdf5_path=args.hdf5_path,
+            inventory=args.inventory
         )
