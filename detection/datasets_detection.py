@@ -18,20 +18,20 @@ def obspy_detrend(data):
 
 
 def normalize_stream(stream, global_max=False):
+    stream_max = np.float32(np.abs(stream).max())
     if global_max is True:
-        ma = np.abs(stream).max()
-        stream /= ma
+        stream /= stream_max
     else:
         i = 0
         for tr in stream:
             ma_tr = np.abs(tr).max()
-            if (ma_tr == 0):
+            if ma_tr == 0:
                 i += 1
             else:
                 tr /= ma_tr
         if i == 3:
             print("Der gesamte Stream ist 0")
-    return stream, True
+    return stream, stream_max
 
 
 class DetectionDataset(Dataset):
@@ -91,16 +91,25 @@ class DetectionDataset(Dataset):
             d0 = obspy_detrend(station_stream[0])
             d1 = obspy_detrend(station_stream[1])
             d2 = obspy_detrend(station_stream[2])
+
+            # set high pass filter
             filt = signal.butter(
                 2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
             )
             f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
             f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
             f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
-            station_stream = np.stack((f0, f1, f2))
-            station_stream, bl = normalize_stream(station_stream)
-            if bl is False:
-                continue
+
+            # set low pass filter
+            lfilt = signal.butter(
+                2, 35, btype="lowpass", fs=100, output="sos"
+            )
+            g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+            g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+            g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+            station_stream = np.stack((g0, g1, g2))
+
+            station_stream, _ = normalize_stream(station_stream)
             sample = {"waveform": station_stream, "label": label}
             return sample
 

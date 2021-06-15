@@ -128,21 +128,30 @@ def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_pat
     axs[2].plot(d2, 'g')
     fig.savefig("TestOneD:Detrended")
 
-    # set filter
+    # set high pass filter
+    sampling_rate = 100
     filt = signal.butter(
-        2, 2, btype="highpass", fs=100, output="sos"
+        2, 2, btype="highpass", fs=sampling_rate, output="sos"
     )
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+    # set low pass filter
+    lfilt = signal.butter(
+        2, 35, btype="lowpass", fs=100, output="sos"
+    )
+    g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+    g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+    g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending, then Filtering")
-    axs[0].plot(f0, 'r')
-    axs[1].plot(f1, 'b')
-    axs[2].plot(f2, 'g')
+    axs[0].plot(g0, 'r')
+    axs[1].plot(g1, 'b')
+    axs[2].plot(g2, 'g')
     fig.savefig("TestOneD:Detrended and Filtered")
 
-    waveform = np.stack((f0, f1, f2))
+    station_stream = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending->Filtering->Normalizing")
@@ -185,7 +194,7 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
     catalog = pd.read_csv(catalog_path)
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
-    idx = 141
+    # idx = 141
     print(idx)
     event, station, p_pick = test.iloc[idx][["EVENT", "STATION", 'P_PICK']]
 
@@ -468,20 +477,29 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[2].plot(d2, 'g')
     fig.savefig("TestOne:Detrended")
 
-    # set filter
+    # set high pass filter
+    sampling_rate = 100
     filt = signal.butter(
-        2, 2, btype="highpass", fs=100, output="sos"
+        2, 2, btype="highpass", fs=sampling_rate, output="sos"
     )
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+    # set low pass filter
+    lfilt = signal.butter(
+        2, 35, btype="lowpass", fs=100, output="sos"
+    )
+    g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+    g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+    g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending, then Filtering")
-    axs[0].plot(f0, 'r')
-    axs[1].plot(f1, 'b')
-    axs[2].plot(f2, 'g')
+    axs[0].plot(g0, 'r')
+    axs[1].plot(g1, 'b')
+    axs[2].plot(g2, 'g')
     fig.savefig("TestOne:Detrended and Filtered")
-    waveform = np.stack((f0, f1, f2))
+    waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending->Filtering->Normalizing")
@@ -526,6 +544,9 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     filt = signal.butter(
         2, 2, btype="highpass", fs=100, output="sos"
     )
+    lfilt = signal.butter(
+        2, 35, btype="lowpass", fs=100, output="sos"
+    )
     outs = np.zeros(len(raw_waveform[0]))
     for i in range(0, len(raw_waveform[0]) - 400):
         raw_waveform = np.array(h5data.get(event + "/" + station))  # reload stream
@@ -537,7 +558,11 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
         f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
         f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
         f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
-        station_stream = np.stack((f0, f1, f2))
+        g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+        g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+        g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+        station_stream = np.stack((g0, g1, g2))
         station_stream, _ = normalize_stream(station_stream)
         station_stream = torch.from_numpy(station_stream[None])
         out = model(station_stream)

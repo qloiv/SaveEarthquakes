@@ -84,13 +84,24 @@ class DetectionDataset(Dataset):
         d0 = obspy_detrend(station_stream[0])
         d1 = obspy_detrend(station_stream[1])
         d2 = obspy_detrend(station_stream[2])
+
+        # set high pass filter
         filt = signal.butter(
             2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
         )
         f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
         f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
         f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
-        station_stream = np.stack((f0, f1, f2))
+
+        # set low pass filter
+        lfilt = signal.butter(
+            2, 35, btype="lowpass", fs=100, output="sos"
+        )
+        g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+        g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+        g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+        station_stream = np.stack((g0, g1, g2))
         station_stream, max_stream = normalize_stream(station_stream)
         sample = {"waveform": (station_stream, max_stream), "label": label}
         return sample
