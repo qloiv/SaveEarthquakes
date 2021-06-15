@@ -57,7 +57,9 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
     print(idx)
-    event, station, distance, p, s = test.iloc[idx][["EVENT", "STATION", 'DIST', "P_PICK", "S_PICK"]]
+    event, station, distance, p, s = test.iloc[idx][
+        ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
+    ]
 
     dist = np.array([1, 600000])
     print(max(test["DIST"]))
@@ -81,7 +83,9 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     seq_len = 20 * 100  # *sampling rate 20 sec window
     p_pick_array = 3001
     random_point = np.random.randint(seq_len)
-    waveform = raw_waveform[:, p_pick_array - random_point: p_pick_array + (seq_len - random_point)]
+    waveform = raw_waveform[
+               :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+               ]
     print(np.shape(waveform))
 
     spick = False
@@ -91,55 +95,51 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
 
     fig, axs = plt.subplots(3)
     fig.suptitle("Input of Distance Network - full Trace")
-    axs[0].plot(raw_waveform[0], 'r')
-    axs[1].plot(raw_waveform[1], 'b')
-    axs[2].plot(raw_waveform[2], 'g')
+    axs[0].plot(raw_waveform[0], "r")
+    axs[1].plot(raw_waveform[1], "b")
+    axs[2].plot(raw_waveform[2], "g")
     fig.savefig("TestOne:Full Trace")
 
     fig, axs = plt.subplots(3)
     fig.suptitle("Input to Network")
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestOne: Input")
     d0 = obspy_detrend(waveform[0])
     d1 = obspy_detrend(waveform[1])
     d2 = obspy_detrend(waveform[2])
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending")
-    axs[0].plot(d0, 'r')
-    axs[1].plot(d1, 'b')
-    axs[2].plot(d2, 'g')
+    axs[0].plot(d0, "r")
+    axs[1].plot(d1, "b")
+    axs[2].plot(d2, "g")
     fig.savefig("TestOne:Detrended")
 
-    filt = signal.butter(
-        2, 2, btype="highpass", fs=self.sampling_rate, output="sos"
-    )
+    filt = signal.butter(2, 2, btype="highpass", fs=self.sampling_rate, output="sos")
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
 
     # set low pass filter
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
     g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
     g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
 
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending, then Filtering")
-    axs[0].plot(f0, 'r')
-    axs[1].plot(f1, 'b')
-    axs[2].plot(f2, 'g')
+    axs[0].plot(f0, "r")
+    axs[1].plot(f1, "b")
+    axs[2].plot(f2, "g")
     fig.savefig("TestOne:Detrended and Filtered")
     waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending->Filtering->Normalizing")
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestOne: Detrended, Filtered and Normalized")
 
     station_stream = torch.from_numpy(waveform[None])
@@ -150,28 +150,36 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
 
     sigma = np.sqrt(var)
 
-    r_learned = (scaler.inverse_transform(learned.reshape(1, -1))[0])
+    r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0]
     # r_var = (scaler.inverse_transform(var.reshape(1, -1))[0])
     r_sigma = scaler.inverse_transform(sigma.reshape(1, -1))[0]
     print(r_learned, r_sigma)
 
     fig, axs = plt.subplots(5, sharex=True)
     # axs[4].yaxis.set_major_formatter(FormatStrFormatter('%d'))
-    fig.suptitle("Target:~" + str(int(distance / 1000)) + "km, learned value:~" + str(
-        int(r_learned / 1000)) + "km\n 68% conf to be between " + str(
-        int((r_learned + r_sigma) / 1000)) + "km and " + str(
-        int((r_learned - r_sigma) / 1000)) + "km, S-Pick included:" + str(spick))
+    fig.suptitle(
+        "Target:~"
+        + str(int(distance / 1000))
+        + "km, learned value:~"
+        + str(int(r_learned / 1000))
+        + "km\n 68% conf to be between "
+        + str(int((r_learned + r_sigma) / 1000))
+        + "km and "
+        + str(int((r_learned - r_sigma) / 1000))
+        + "km, S-Pick included:"
+        + str(spick)
+    )
 
-    axs[0].plot(waveform[0], 'r')
+    axs[0].plot(waveform[0], "r")
 
-    axs[1].plot(waveform[1], 'b')
+    axs[1].plot(waveform[1], "b")
 
-    axs[2].plot(waveform[2], 'g')
+    axs[2].plot(waveform[2], "g")
 
-    axs[3].axhline(label, color='black', linestyle="dashed")
-    axs[3].axhline(learned, color='green', alpha=0.7)
-    axs[3].axhline(learned + 3 * sigma, color='green', alpha=0.001, linewidth=0.001)
-    axs[3].axhline(learned - 3 * sigma, color='green', alpha=0.001, linewidth=0.001)
+    axs[3].axhline(label, color="black", linestyle="dashed")
+    axs[3].axhline(learned, color="green", alpha=0.7)
+    axs[3].axhline(learned + 3 * sigma, color="green", alpha=0.001, linewidth=0.001)
+    axs[3].axhline(learned - 3 * sigma, color="green", alpha=0.001, linewidth=0.001)
 
     t = np.linspace(1, 2000, num=2000)
     var1 = learned + var
@@ -184,27 +192,37 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[3].fill_between(t, learned, learned - sigma, alpha=0.4, color="green")
 
     scale_y = 1000  # metres to km
-    ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x / scale_y))
+    ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
     axs[4].yaxis.set_major_formatter(ticks_y)
-    axs[4].axhline(distance, color='black', linestyle="dashed")
-    axs[4].axhline(r_learned, color='green', alpha=0.7)
+    axs[4].axhline(distance, color="black", linestyle="dashed")
+    axs[4].axhline(r_learned, color="green", alpha=0.7)
     print(r_learned, r_learned + 3 * r_sigma)
-    axs[4].fill_between(t, r_learned, r_learned + 3 * r_sigma, alpha=0.01, color="green")
-    axs[4].fill_between(t, r_learned, r_learned - 3 * r_sigma, alpha=0.01, color="green")
+    axs[4].fill_between(
+        t, r_learned, r_learned + 3 * r_sigma, alpha=0.01, color="green"
+    )
+    axs[4].fill_between(
+        t, r_learned, r_learned - 3 * r_sigma, alpha=0.01, color="green"
+    )
     axs[4].fill_between(t, r_learned, r_learned + 2 * r_sigma, alpha=0.2, color="green")
     axs[4].fill_between(t, r_learned, r_learned - 2 * r_sigma, alpha=0.2, color="green")
     axs[4].fill_between(t, r_learned, r_learned + r_sigma, alpha=0.4, color="green")
     axs[4].fill_between(t, r_learned, r_learned - r_sigma, alpha=0.4, color="green")
-    axs[4].axhline(r_learned + 3 * r_sigma, color='green', alpha=0.001, linewidth=0.001)
-    axs[4].axhline(r_learned - 3 * r_sigma, color='green', alpha=0.001, linewidth=0.001)
+    axs[4].axhline(r_learned + 3 * r_sigma, color="green", alpha=0.001, linewidth=0.001)
+    axs[4].axhline(r_learned - 3 * r_sigma, color="green", alpha=0.001, linewidth=0.001)
 
     axs[0].axvline(random_point, color="black", linestyle="dashed", linewidth=0.5)
     axs[1].axvline(random_point, color="black", linestyle="dashed", linewidth=0.5)
     axs[2].axvline(random_point, color="black", linestyle="dashed", linewidth=0.5)
     if spick:
-        axs[0].axvline(random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5)
-        axs[1].axvline(random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5)
-        axs[2].axvline(random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5)
+        axs[0].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5
+        )
+        axs[1].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5
+        )
+        axs[2].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5
+        )
 
     fig.savefig("TestOne: Results")
     h5data.close()
@@ -224,13 +242,17 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     trainer.test(model, datamodule=dm)
 
 
-def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence length into variable
+def predict(
+        catalog_path, hdf5_path, checkpoint_path
+):  # TODO put sequence length into variable
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
     print(idx)
-    event, station, distance, p, s = test.iloc[idx][["EVENT", "STATION", 'DIST', "P_PICK", "S_PICK"]]
+    event, station, distance, p, s = test.iloc[idx][
+        ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
+    ]
 
     dist = np.array([1, 600000])
     print(max(test["DIST"]))
@@ -251,13 +273,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     model.freeze()
 
     waveform = np.array(h5data.get(event + "/" + station))
-    filt = signal.butter(
-        2, 2, btype="highpass", fs=100, output="sos"
-    )
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     # set low pass filter
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     real_output = np.zeros(6000)
     # real_labels = np.zeros(6000)
     s_output = np.zeros(6000)
@@ -302,8 +320,15 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     # print(mean_squared_error(s_output, s_labels))
     t = np.linspace(0, 6000, num=6000)
     fig, axs = plt.subplots(5, sharex=True)
-    fig.suptitle("Predict Plot, Distance:~" + str(int(distance / 1000)) + "km \nLearned distance ranges from ~" + str(
-        int(min(real_output[2000:]) / 1000)) + "km to ~" + str(int(max(real_output[2000:]) / 1000)) + "km")
+    fig.suptitle(
+        "Predict Plot, Distance:~"
+        + str(int(distance / 1000))
+        + "km \nLearned distance ranges from ~"
+        + str(int(min(real_output[2000:]) / 1000))
+        + "km to ~"
+        + str(int(max(real_output[2000:]) / 1000))
+        + "km"
+    )
     real_output[0:2000] = np.nan
 
     waveform = np.array(h5data.get(event + "/" + station))
@@ -312,17 +337,13 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     d1 = obspy_detrend(waveform[1])
     d2 = obspy_detrend(waveform[2])
 
-    filt = signal.butter(
-        2, 2, btype="highpass", fs=100, output="sos"
-    )
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
 
     # set low pass filter
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
     g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
     g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
@@ -330,16 +351,22 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
     waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
 
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     axs[0].axvline(3001, color="black", linestyle="dashed", linewidth=0.5)
     axs[1].axvline(3001, color="black", linestyle="dashed", linewidth=0.5)
     axs[2].axvline(3001, color="black", linestyle="dashed", linewidth=0.5)
     if s and (s - p) < 30:
-        axs[0].axvline(3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5)
-        axs[1].axvline(3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5)
-        axs[2].axvline(3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5)
+        axs[0].axvline(
+            3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
+        )
+        axs[1].axvline(
+            3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
+        )
+        axs[2].axvline(
+            3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
+        )
     real_labels = np.full(6000, distance)
     print(np.shape(real_labels), np.shape(real_output))
     # axs[3].title.set_text("Absolute Error in m")
@@ -350,20 +377,24 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
 
     # axs[4].title.set_text("Target, learned value and 68% conf interval")
     scale_y = 1000  # metres to km
-    ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x / scale_y))
+    ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
     axs[4].yaxis.set_major_formatter(ticks_y)
-    axs[4].axhline(distance, color='black', linestyle="dashed")
-    axs[4].plot(t, real_output, color='green', alpha=0.7)
+    axs[4].axhline(distance, color="black", linestyle="dashed")
+    axs[4].plot(t, real_output, color="green", alpha=0.7)
     # axs[4].plot(t,real_output+real_sig, color = "green", alpha = 0.3)
     # axs[4].plot(t,real_output-real_sig, color = "green", alpha = 0.3)
-    axs[4].fill_between(t, real_output, real_output + real_sig, alpha=0.3, color="green")
-    axs[4].fill_between(t, real_output, real_output - real_sig, alpha=0.3, color="green")
+    axs[4].fill_between(
+        t, real_output, real_output + real_sig, alpha=0.3, color="green"
+    )
+    axs[4].fill_between(
+        t, real_output, real_output - real_sig, alpha=0.3, color="green"
+    )
 
     scale_y = 1000  # metres to km
-    ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x / scale_y))
+    ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
     axs[3].yaxis.set_major_formatter(ticks_y)
-    axs[3].axhline(distance, color='black', linestyle="dashed")
-    axs[3].plot(t, real_output, color='green', alpha=0.7)
+    axs[3].axhline(distance, color="black", linestyle="dashed")
+    axs[3].plot(t, real_output, color="green", alpha=0.7)
 
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
     fig.savefig("predict plot")
@@ -372,35 +403,38 @@ def predict(catalog_path, hdf5_path, checkpoint_path):  # TODO put sequence leng
 
 learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--action', type=str, required=True)
-    parser.add_argument('--catalog_path', type=str)
-    parser.add_argument('--hdf5_path', type=str)
-    parser.add_argument('--model_path', type=str)
-    parser.add_argument('--checkpoint_path', type=str)
-    parser.add_argument('--hparams_file', type=str)
+    parser.add_argument("--action", type=str, required=True)
+    parser.add_argument("--catalog_path", type=str)
+    parser.add_argument("--hdf5_path", type=str)
+    parser.add_argument("--model_path", type=str)
+    parser.add_argument("--checkpoint_path", type=str)
+    parser.add_argument("--hparams_file", type=str)
     args = parser.parse_args()
     action = args.action
     if action == "test_one":
-        test_one(catalog_path=args.catalog_path,
-                 checkpoint_path=args.checkpoint_path,
-                 hdf5_path=args.hdf5_path
-                 )
-    if action == 'learn':
-        learn(catalog_path=args.catalog_path,
-              hdf5_path=args.hdf5_path,
-              model_path=args.model_path,
-              )
-    if action == 'test':
-        test(catalog_path=args.catalog_path,
-             hdf5_path=args.hdf5_path,
-             checkpoint_path=args.checkpoint_path,
-             hparams_file=args.hparams_file,
-             )
-    if action == 'predict':
-        predict(catalog_path=args.catalog_path,
-                hdf5_path=args.hdf5_path,
-                checkpoint_path=args.checkpoint_path,
-
-                )
+        test_one(
+            catalog_path=args.catalog_path,
+            checkpoint_path=args.checkpoint_path,
+            hdf5_path=args.hdf5_path,
+        )
+    if action == "learn":
+        learn(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            model_path=args.model_path,
+        )
+    if action == "test":
+        test(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+            hparams_file=args.hparams_file,
+        )
+    if action == "predict":
+        predict(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+        )

@@ -4,27 +4,40 @@ import pytorch_lightning as pl
 import torch.nn
 from pytorch_lightning.core.lightning import LightningModule
 from torch import Tensor
-from torch.nn import Linear, ReLU, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d, Softplus  # GaussianNLLLoss
+from torch.nn import (
+    Linear,
+    ReLU,
+    Flatten,
+    Sequential,
+    Conv1d,
+    MaxPool1d,
+    BatchNorm1d,
+    Softplus,
+)  # GaussianNLLLoss
 from torch.nn.modules.loss import _Loss
 from torch.overrides import handle_torch_function
 from torch.overrides import has_torch_function
 
 
 class GaussianNLLLoss(_Loss):
-    __constants__ = ['full', 'eps', 'reduction']
+    __constants__ = ["full", "eps", "reduction"]
     full: bool
     eps: float
 
-    def __init__(self, *, full: bool = False, eps: float = 1e-6, reduction: str = 'mean') -> None:
+    def __init__(
+            self, *, full: bool = False, eps: float = 1e-6, reduction: str = "mean"
+    ) -> None:
         super(GaussianNLLLoss, self).__init__(None, None, reduction)
         self.full = full
         self.eps = eps
 
     def forward(self, input: Tensor, target: Tensor, var: Tensor) -> Tensor:
-        return gaussian_nll_loss(input, target, var, full=self.full, eps=self.eps, reduction=self.reduction)
+        return gaussian_nll_loss(
+            input, target, var, full=self.full, eps=self.eps, reduction=self.reduction
+        )
 
 
-def gaussian_nll_loss(input, target, var, *, full=False, eps=1e-6, reduction='mean'):
+def gaussian_nll_loss(input, target, var, *, full=False, eps=1e-6, reduction="mean"):
     r"""Gaussian negative log likelihood loss.
 
     See :class:`~torch.nn.GaussianNLLLoss` for details.
@@ -45,9 +58,19 @@ def gaussian_nll_loss(input, target, var, *, full=False, eps=1e-6, reduction='me
     """
     if not torch.jit.is_scripting():
         tens_ops = (input, target, var)
-        if any([type(t) is not Tensor for t in tens_ops]) and has_torch_function(tens_ops):
+        if any([type(t) is not Tensor for t in tens_ops]) and has_torch_function(
+                tens_ops
+        ):
             return handle_torch_function(
-                gaussian_nll_loss, tens_ops, input, target, var, full=full, eps=eps, reduction=reduction)
+                gaussian_nll_loss,
+                tens_ops,
+                input,
+                target,
+                var,
+                full=full,
+                eps=eps,
+                reduction=reduction,
+            )
 
     # Inputs and targets much have same shape
     input = input.view(input.size(0), -1)
@@ -61,7 +84,7 @@ def gaussian_nll_loss(input, target, var, *, full=False, eps=1e-6, reduction='me
         raise ValueError("var is of incorrect size")
 
     # Check validity of reduction mode
-    if reduction != 'none' and reduction != 'mean' and reduction != 'sum':
+    if reduction != "none" and reduction != "mean" and reduction != "sum":
         raise ValueError(reduction + " is not valid")
 
     # Entries of var must be non-negative
@@ -74,7 +97,9 @@ def gaussian_nll_loss(input, target, var, *, full=False, eps=1e-6, reduction='me
         var.clamp_(min=eps)
 
     # Calculate loss (without constant)
-    loss = 0.5 * (torch.log(var) + (input - target) ** 2 / var).view(input.size(0), -1).sum(dim=1)
+    loss = 0.5 * (torch.log(var) + (input - target) ** 2 / var).view(
+        input.size(0), -1
+    ).sum(dim=1)
 
     # Add constant to loss term if required
     if full:
@@ -82,9 +107,9 @@ def gaussian_nll_loss(input, target, var, *, full=False, eps=1e-6, reduction='me
         loss = loss + 0.5 * D * math.log(2 * math.pi)
 
     # Apply reduction
-    if reduction == 'mean':
+    if reduction == "mean":
         return loss.mean()
-    elif reduction == 'sum':
+    elif reduction == "sum":
         return loss.sum()
     else:
         return loss
@@ -96,9 +121,7 @@ class LitNetwork(LightningModule):
         self.cnn_layer1 = Sequential(
             Conv1d(3, 32, kernel_size=21, stride=1, padding=10),
             # pytorch hat noch keine padding_mode = same implementation
-            BatchNorm1d(
-                32
-            ),  # batch norm values taken from keras default
+            BatchNorm1d(32),  # batch norm values taken from keras default
             ReLU(),
             MaxPool1d(kernel_size=2, stride=2),
         )
@@ -202,5 +225,7 @@ class LitNetwork(LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters())  # Adam(self.model.parameters(), lr=0.001) is default lr
+        optimizer = torch.optim.Adam(
+            self.parameters()
+        )  # Adam(self.model.parameters(), lr=0.001) is default lr
         return optimizer

@@ -57,13 +57,15 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     trainer.test(model, datamodule=dm)
 
 
-def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, inv_path):
+def test_one_displacement(
+        catalog_path, checkpoint_path, hdf5_path, waveform_path, inv_path
+):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", 'P_PICK']]
+    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -80,7 +82,9 @@ def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_pat
     p_pick_array = 3000  # ist bei 3000 weil obspy null indiziert arbeitet, also die Startzeit beginnt bei array 0
     # wir haben eine millisekunde zu viel, weil ich im preprocessing 30s vor und nach dem p Pick auswähle
     random_point = np.random.randint(seq_len)
-    waveform = raw_waveform[:, p_pick_array - random_point: p_pick_array + (seq_len - random_point)]
+    waveform = raw_waveform[
+               :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+               ]
 
     # load obpsy waveforms
     o_raw_waveform = obspy.read(
@@ -88,9 +92,10 @@ def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_pat
         # we don t need to check whether this exists, because we filtered by waveforms before
     )
     o_waveform = o_raw_waveform.select(station=station, channel="HH*")
-    o_station_stream = o_waveform.slice(starttime=UTCDateTime(p_pick) - random_point / 100,  #
-                                        endtime=UTCDateTime(p_pick) + (
-                                                    4.00 - random_point / 100) - 0.01)  # -0.01 deletes the last item, therefore enforcing array indexing
+    o_station_stream = o_waveform.slice(
+        starttime=UTCDateTime(p_pick) - random_point / 100,  #
+        endtime=UTCDateTime(p_pick) + (4.00 - random_point / 100) - 0.01,
+    )  # -0.01 deletes the last item, therefore enforcing array indexing
 
     # load inventory
     inv = obspy.read_inventory(inv_path)
@@ -107,48 +112,44 @@ def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_pat
     # the same routines as in test_one
     fig, axs = plt.subplots(3)
     fig.suptitle("Input of Detection Network - full Trace")
-    axs[0].plot(raw_waveform[0], 'r')
-    axs[1].plot(raw_waveform[1], 'b')
-    axs[2].plot(raw_waveform[2], 'g')
+    axs[0].plot(raw_waveform[0], "r")
+    axs[1].plot(raw_waveform[1], "b")
+    axs[2].plot(raw_waveform[2], "g")
     fig.savefig("TestOneD:Full Trace")
 
     fig, axs = plt.subplots(3)
     fig.suptitle("Cut Out Input")
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestOneD: Input")
     d0 = obspy_detrend(waveform[0])
     d1 = obspy_detrend(waveform[1])
     d2 = obspy_detrend(waveform[2])
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending")
-    axs[0].plot(d0, 'r')
-    axs[1].plot(d1, 'b')
-    axs[2].plot(d2, 'g')
+    axs[0].plot(d0, "r")
+    axs[1].plot(d1, "b")
+    axs[2].plot(d2, "g")
     fig.savefig("TestOneD:Detrended")
 
     # set high pass filter
     sampling_rate = 100
-    filt = signal.butter(
-        2, 2, btype="highpass", fs=sampling_rate, output="sos"
-    )
+    filt = signal.butter(2, 2, btype="highpass", fs=sampling_rate, output="sos")
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
 
     # set low pass filter
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
     g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
     g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending, then Filtering")
-    axs[0].plot(g0, 'r')
-    axs[1].plot(g1, 'b')
-    axs[2].plot(g2, 'g')
+    axs[0].plot(g0, "r")
+    axs[1].plot(g1, "b")
+    axs[2].plot(g2, "g")
     fig.savefig("TestOneD:Detrended and Filtered")
 
     station_stream = np.stack((g0, g1, g2))
@@ -156,9 +157,9 @@ def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_pat
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending->Filtering->Normalizing")
 
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestOneD: Detrended, Filtered and Normalized")
 
     station_stream = torch.from_numpy(waveform[None])
@@ -171,14 +172,18 @@ def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_pat
     new_stream[0].data = waveform[2]
     new_stream[1].data = waveform[1]
     new_stream[2].data = waveform[0]
-    disp = new_stream.copy().remove_response(inventory=inv_selection, pre_filt=None, output="DISP")
+    disp = new_stream.copy().remove_response(
+        inventory=inv_selection, pre_filt=None, output="DISP"
+    )
     disp.plot()
 
     fig, axs = plt.subplots(6)
-    fig.suptitle("Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted)))
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    fig.suptitle(
+        "Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted))
+    )
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     axs[0].axvline(random_point, color="black")
     axs[1].axvline(random_point, color="black")
     axs[2].axvline(random_point, color="black")
@@ -189,14 +194,16 @@ def test_one_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_pat
     fig.savefig("TestOneD: Results")
 
 
-def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, inv_path):
+def test_displacement(
+        catalog_path, checkpoint_path, hdf5_path, waveform_path, inv_path
+):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
     # idx = 141
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", 'P_PICK']]
+    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -214,7 +221,9 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
     # wir haben eine millisekunde zu viel, weil ich im preprocessing 30s vor und nach dem p Pick auswähle
     random_point = np.random.randint(seq_len)
     random_point = 150
-    waveform = raw_waveform[:, p_pick_array - random_point: p_pick_array + (seq_len - random_point)]
+    waveform = raw_waveform[
+               :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+               ]
 
     # load obpsy waveforms
     o_raw_waveform = obspy.read(
@@ -222,9 +231,10 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
         # we don t need to check whether this exists, because we filtered by waveforms before
     )
     o_waveform = o_raw_waveform.select(station=station, channel="HH*")
-    o_station_stream = o_waveform.slice(starttime=UTCDateTime(p_pick) - random_point / 100,  #
-                                        endtime=UTCDateTime(p_pick) + (
-                                                4.00 - random_point / 100) - 0.01)  # -0.01 deletes the last item, therefore enforcing array indexing
+    o_station_stream = o_waveform.slice(
+        starttime=UTCDateTime(p_pick) - random_point / 100,  #
+        endtime=UTCDateTime(p_pick) + (4.00 - random_point / 100) - 0.01,
+    )  # -0.01 deletes the last item, therefore enforcing array indexing
 
     # load inventory
     inv = obspy.read_inventory(inv_path)
@@ -244,53 +254,49 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
     # the same routines as in test_one
     fig, axs = plt.subplots(3)
     fig.suptitle("Input of Detection Network - full Trace")
-    axs[0].plot(raw_waveform[0], 'r')
-    axs[1].plot(raw_waveform[1], 'b')
-    axs[2].plot(raw_waveform[2], 'g')
+    axs[0].plot(raw_waveform[0], "r")
+    axs[1].plot(raw_waveform[1], "b")
+    axs[2].plot(raw_waveform[2], "g")
     fig.savefig("TestDisp:Full Trace")
 
     fig, axs = plt.subplots(3)
     fig.suptitle("Cut Out Input")
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestDisp: Input")
     d0 = obspy_detrend(waveform[0])
     d1 = obspy_detrend(waveform[1])
     d2 = obspy_detrend(waveform[2])
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending")
-    axs[0].plot(d0, 'r')
-    axs[1].plot(d1, 'b')
-    axs[2].plot(d2, 'g')
+    axs[0].plot(d0, "r")
+    axs[1].plot(d1, "b")
+    axs[2].plot(d2, "g")
     fig.savefig("TestDisp:Detrended")
 
     # set high pass filter
-    hfilt = signal.butter(
-        2, 2, btype="highpass", fs=100, output="sos"
-    )
+    hfilt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     f0 = signal.sosfilt(hfilt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(hfilt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(hfilt, d2, axis=-1).astype(np.float32)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending, then High-Pass filtering")
-    axs[0].plot(f0, 'r')
-    axs[1].plot(f1, 'b')
-    axs[2].plot(f2, 'g')
+    axs[0].plot(f0, "r")
+    axs[1].plot(f1, "b")
+    axs[2].plot(f2, "g")
     fig.savefig("TestDisp:Detrended and High-Pass Filtered")
 
     # set low pass filter
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
     g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
     g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending, then High and Low-Pass filtering")
-    axs[0].plot(g0, 'r')
-    axs[1].plot(g1, 'b')
-    axs[2].plot(g2, 'g')
+    axs[0].plot(g0, "r")
+    axs[1].plot(g1, "b")
+    axs[2].plot(g2, "g")
     fig.savefig("TestDisp:Detrended and High and Low-Pass Filtered")
 
     # build the two final waveforms, with and without lowpass
@@ -302,9 +308,9 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
     waveform_highpass = np.stack((f0, f1, f2))
     waveform_highpass, _ = normalize_stream(waveform_highpass)
 
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestDisp: Detrended, Filtered and Normalized")
 
     # evaluate both waveforms with the model
@@ -319,22 +325,34 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
 
     # compute and plot displacement for the just highpass waveforms for two water levels,30 and 60
     # relying on asserts from before
-    new_stream_w60_high[0].data = waveform_highpass[2]  # changing obspy ordering to mine which is ZNE = 123
+    new_stream_w60_high[0].data = waveform_highpass[
+        2
+    ]  # changing obspy ordering to mine which is ZNE = 123
     new_stream_w60_high[1].data = waveform_highpass[1]
     new_stream_w60_high[2].data = waveform_highpass[0]
-    disp_w60_high = new_stream_w60_high.copy().remove_response(inventory=inv_selection, pre_filt=None, output="DISP")
+    disp_w60_high = new_stream_w60_high.copy().remove_response(
+        inventory=inv_selection, pre_filt=None, output="DISP"
+    )
     disp_w60_high.plot()
 
     fig, axs = plt.subplots(4, sharex=True)
     axs[3].set_xlabel("Time in seconds")
     fig.suptitle(
-        "Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted_highpass)) + "\nExample:" + str(idx)
-        + ", Waterlevel:60" + " and only high-pass filter")
-    axs[0].plot(waveform_highpass[0], 'r', linewidth=0.5)
-    axs[0].plot(waveform_highpass[1], 'b', linewidth=0.5)
-    axs[0].plot(waveform_highpass[2], 'g', linewidth=0.5)
+        "Modified data with P-Pick, was detected as P-Wave? "
+        + str(bool(predicted_highpass))
+        + "\nExample:"
+        + str(idx)
+        + ", Waterlevel:60"
+        + " and only high-pass filter"
+    )
+    axs[0].plot(waveform_highpass[0], "r", linewidth=0.5)
+    axs[0].plot(waveform_highpass[1], "b", linewidth=0.5)
+    axs[0].plot(waveform_highpass[2], "g", linewidth=0.5)
     axs[0].axvline(random_point, color="black", linewidth=0.5)
-    axs[0].set_title("Normalized and filtered input for Z(red), N(blue) and E(green)", fontdict={"fontsize": 8})
+    axs[0].set_title(
+        "Normalized and filtered input for Z(red), N(blue) and E(green)",
+        fontdict={"fontsize": 8},
+    )
 
     # axs[1,0].axvline(random_point, color="black")
     # axs[2,0].axvline(random_point, color="black")
@@ -343,27 +361,38 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
     axs[2].plot(disp_w60_high[1].data, linewidth=0.5)
     axs[3].plot(disp_w60_high[2].data, linewidth=0.5)
     fig.tight_layout()
-    fig.savefig("TestDisp: Results with water level 60 and only High-Pass (2Hz) filter", dpi=600)
+    fig.savefig(
+        "TestDisp: Results with water level 60 and only High-Pass (2Hz) filter", dpi=600
+    )
 
     # compute and plot displacement
     # relying on asserts from before
     new_stream_w30_high[0].data = waveform_highpass[2]
     new_stream_w30_high[1].data = waveform_highpass[1]
     new_stream_w30_high[2].data = waveform_highpass[0]
-    disp_w30_high = new_stream_w30_high.copy().remove_response(inventory=inv_selection, pre_filt=None, output="DISP",
-                                                               water_level=30)
+    disp_w30_high = new_stream_w30_high.copy().remove_response(
+        inventory=inv_selection, pre_filt=None, output="DISP", water_level=30
+    )
     disp_w30_high.plot()
 
     fig, axs = plt.subplots(4, sharex=True)
     axs[3].set_xlabel("Time in seconds")
     fig.suptitle(
-        "Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted_highpass)) + "\nExample:" + str(
-            idx) + " Waterlevel:30" + " and only high-pass (2Hz) filter")
-    axs[0].plot(waveform_highpass[0], 'r', linewidth=0.5)
-    axs[0].plot(waveform_highpass[1], 'b', linewidth=0.5)
-    axs[0].plot(waveform_highpass[2], 'g', linewidth=0.5)
+        "Modified data with P-Pick, was detected as P-Wave? "
+        + str(bool(predicted_highpass))
+        + "\nExample:"
+        + str(idx)
+        + " Waterlevel:30"
+        + " and only high-pass (2Hz) filter"
+    )
+    axs[0].plot(waveform_highpass[0], "r", linewidth=0.5)
+    axs[0].plot(waveform_highpass[1], "b", linewidth=0.5)
+    axs[0].plot(waveform_highpass[2], "g", linewidth=0.5)
     axs[0].axvline(random_point, color="black", linewidth=0.5)
-    axs[0].set_title("Normalized and filtered input for Z(red), N(blue) and E(green)", fontdict={"fontsize": 8})
+    axs[0].set_title(
+        "Normalized and filtered input for Z(red), N(blue) and E(green)",
+        fontdict={"fontsize": 8},
+    )
 
     # axs[1,0].axvline(random_point, color="black")
     # axs[2,0].axvline(random_point, color="black")
@@ -372,25 +401,37 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
     axs[2].plot(disp_w30_high[1].data, linewidth=0.5)
     axs[3].plot(disp_w30_high[2].data, linewidth=0.5)
     fig.tight_layout()
-    fig.savefig("TestDisp: Results with water level 30 and only high-pass filter", dpi=600)
+    fig.savefig(
+        "TestDisp: Results with water level 30 and only high-pass filter", dpi=600
+    )
 
     # compute and plot displacement for high and low pass and both water levels
     # relying on asserts from before
     new_stream_w60[0].data = waveform[2]
     new_stream_w60[1].data = waveform[1]
     new_stream_w60[2].data = waveform[0]
-    disp_w60 = new_stream_w60.copy().remove_response(inventory=inv_selection, pre_filt=None, output="DISP")
+    disp_w60 = new_stream_w60.copy().remove_response(
+        inventory=inv_selection, pre_filt=None, output="DISP"
+    )
     disp_w60.plot()
 
     fig, axs = plt.subplots(4, sharex=True)
     axs[3].set_xlabel("Time in seconds")
-    fig.suptitle("Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted)) + "\nExample:" + str(idx)
-                 + " Waterlevel:60 and high (2Hz) and low pass(35Hz) filter")
-    axs[0].plot(waveform[0], 'r', linewidth=0.5)
-    axs[0].plot(waveform[1], 'b', linewidth=0.5)
-    axs[0].plot(waveform[2], 'g', linewidth=0.5)
+    fig.suptitle(
+        "Modified data with P-Pick, was detected as P-Wave? "
+        + str(bool(predicted))
+        + "\nExample:"
+        + str(idx)
+        + " Waterlevel:60 and high (2Hz) and low pass(35Hz) filter"
+    )
+    axs[0].plot(waveform[0], "r", linewidth=0.5)
+    axs[0].plot(waveform[1], "b", linewidth=0.5)
+    axs[0].plot(waveform[2], "g", linewidth=0.5)
     axs[0].axvline(random_point, color="black", linewidth=0.5)
-    axs[0].set_title("Normalized and filtered input for Z(red), N(blue) and E(green)", fontdict={"fontsize": 8})
+    axs[0].set_title(
+        "Normalized and filtered input for Z(red), N(blue) and E(green)",
+        fontdict={"fontsize": 8},
+    )
 
     # axs[1,0].axvline(random_point, color="black")
     # axs[2,0].axvline(random_point, color="black")
@@ -407,19 +448,28 @@ def test_displacement(catalog_path, checkpoint_path, hdf5_path, waveform_path, i
     new_stream_w30[0].data = waveform[2]
     new_stream_w30[1].data = waveform[1]
     new_stream_w30[2].data = waveform[0]
-    disp_w30 = new_stream_w30.copy().remove_response(inventory=inv_selection, pre_filt=None, output="DISP",
-                                                     water_level=30)
+    disp_w30 = new_stream_w30.copy().remove_response(
+        inventory=inv_selection, pre_filt=None, output="DISP", water_level=30
+    )
     disp_w30.plot()
 
     fig, axs = plt.subplots(4, sharex=True)
     axs[3].set_xlabel("Time in seconds")
-    fig.suptitle("Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted)) + "\nExample:" + str(
-        idx) + " Waterlevel:30 and high (2Hz) and low pass(35) filter")
-    axs[0].plot(waveform[0], 'r', linewidth=0.5)
-    axs[0].plot(waveform[1], 'b', linewidth=0.5)
-    axs[0].plot(waveform[2], 'g', linewidth=0.5)
+    fig.suptitle(
+        "Modified data with P-Pick, was detected as P-Wave? "
+        + str(bool(predicted))
+        + "\nExample:"
+        + str(idx)
+        + " Waterlevel:30 and high (2Hz) and low pass(35) filter"
+    )
+    axs[0].plot(waveform[0], "r", linewidth=0.5)
+    axs[0].plot(waveform[1], "b", linewidth=0.5)
+    axs[0].plot(waveform[2], "g", linewidth=0.5)
     axs[0].axvline(random_point, color="black", linewidth=0.5)
-    axs[0].set_title("Normalized and filtered input for Z(red), N(blue) and E(green)", fontdict={"fontsize": 8})
+    axs[0].set_title(
+        "Normalized and filtered input for Z(red), N(blue) and E(green)",
+        fontdict={"fontsize": 8},
+    )
 
     # axs[1,0].axvline(random_point, color="black")
     # axs[2,0].axvline(random_point, color="black")
@@ -438,7 +488,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", 'P_PICK']]
+    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -453,69 +503,69 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     seq_len = 4 * 100  # *sampling rate
     p_pick_array = 3001
     random_point = np.random.randint(seq_len)
-    waveform = raw_waveform[:, p_pick_array - random_point: p_pick_array + (seq_len - random_point)]
+    waveform = raw_waveform[
+               :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+               ]
     fig, axs = plt.subplots(3)
     fig.suptitle("Input of Detection Network - full Trace")
-    axs[0].plot(raw_waveform[0], 'r')
-    axs[1].plot(raw_waveform[1], 'b')
-    axs[2].plot(raw_waveform[2], 'g')
+    axs[0].plot(raw_waveform[0], "r")
+    axs[1].plot(raw_waveform[1], "b")
+    axs[2].plot(raw_waveform[2], "g")
     fig.savefig("TestOne:Full Trace")
 
     fig, axs = plt.subplots(3)
     fig.suptitle("Cut Out Input")
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestOne: Input")
     d0 = obspy_detrend(waveform[0])
     d1 = obspy_detrend(waveform[1])
     d2 = obspy_detrend(waveform[2])
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending")
-    axs[0].plot(d0, 'r')
-    axs[1].plot(d1, 'b')
-    axs[2].plot(d2, 'g')
+    axs[0].plot(d0, "r")
+    axs[1].plot(d1, "b")
+    axs[2].plot(d2, "g")
     fig.savefig("TestOne:Detrended")
 
     # set high pass filter
     sampling_rate = 100
-    filt = signal.butter(
-        2, 2, btype="highpass", fs=sampling_rate, output="sos"
-    )
+    filt = signal.butter(2, 2, btype="highpass", fs=sampling_rate, output="sos")
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
 
     # set low pass filter
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
     g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
     g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending, then Filtering")
-    axs[0].plot(g0, 'r')
-    axs[1].plot(g1, 'b')
-    axs[2].plot(g2, 'g')
+    axs[0].plot(g0, "r")
+    axs[1].plot(g1, "b")
+    axs[2].plot(g2, "g")
     fig.savefig("TestOne:Detrended and Filtered")
     waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending->Filtering->Normalizing")
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     fig.savefig("TestOne: Detrended, Filtered and Normalized")
     station_stream = torch.from_numpy(waveform[None])
     out = model(station_stream)
     _, predicted = torch.max(out, 1)
     print(predicted)
     fig, axs = plt.subplots(3)
-    fig.suptitle("Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted)))
-    axs[0].plot(waveform[0], 'r')
-    axs[1].plot(waveform[1], 'b')
-    axs[2].plot(waveform[2], 'g')
+    fig.suptitle(
+        "Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted))
+    )
+    axs[0].plot(waveform[0], "r")
+    axs[1].plot(waveform[1], "b")
+    axs[2].plot(waveform[2], "g")
     axs[0].axvline(random_point, color="black")
     axs[1].axvline(random_point, color="black")
     axs[2].axvline(random_point, color="black")
@@ -529,7 +579,7 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     test = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test))
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", 'P_PICK']]
+    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -541,16 +591,12 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     model.freeze()
 
     raw_waveform = np.array(h5data.get(event + "/" + station))
-    filt = signal.butter(
-        2, 2, btype="highpass", fs=100, output="sos"
-    )
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     outs = np.zeros(len(raw_waveform[0]))
     for i in range(0, len(raw_waveform[0]) - 400):
         raw_waveform = np.array(h5data.get(event + "/" + station))  # reload stream
-        window = raw_waveform[:, i:i + 400]
+        window = raw_waveform[:, i: i + 400]
         d0 = obspy_detrend(window[0])
         d1 = obspy_detrend(window[1])
         d2 = obspy_detrend(window[2])
@@ -589,9 +635,9 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     # station_stream = normalize_stream(station_stream)
     station_stream = np.array(h5data.get(event + "/" + station))
 
-    axs[0].plot(station_stream[0], 'r')
-    axs[1].plot(station_stream[1], 'b')
-    axs[2].plot(station_stream[2], 'g')
+    axs[0].plot(station_stream[0], "r")
+    axs[1].plot(station_stream[1], "b")
+    axs[2].plot(station_stream[2], "g")
     axs[3].plot(outs)
     axs[0].axvline(3001, color="black")
     axs[1].axvline(3001, color="black")
@@ -690,45 +736,52 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     # plt.savefig("current_plot")
 
 
-test_displacement(catalog_path=cp, hdf5_path=hp,
-                  checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt",
-                  waveform_path="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
-                  inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml")
+test_displacement(
+    catalog_path=cp,
+    hdf5_path=hp,
+    checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt",
+    waveform_path="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
+    inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml",
+)
 
 # learn(cp, hp, mp)
 # predict(catalog_path=cp, hdf5_path=hp,
 # checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
 # test(catalog_path=cp,hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt",hparams_file="../tb_logs/detection/version_2/hparams.yaml")
 # test_one(catalog_path=cp, hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--action', type=str, required=True)
-    parser.add_argument('--catalog_path', type=str)
-    parser.add_argument('--hdf5_path', type=str)
-    parser.add_argument('--model_path', type=str)
-    parser.add_argument('--checkpoint_path', type=str)
-    parser.add_argument('--hparams_file', type=str)
+    parser.add_argument("--action", type=str, required=True)
+    parser.add_argument("--catalog_path", type=str)
+    parser.add_argument("--hdf5_path", type=str)
+    parser.add_argument("--model_path", type=str)
+    parser.add_argument("--checkpoint_path", type=str)
+    parser.add_argument("--hparams_file", type=str)
     args = parser.parse_args()
     action = args.action
 
-    if action == 'learn':
-        learn(catalog_path=args.catalog_path,
-              hdf5_path=args.hdf5_path,
-              model_path=args.model_path,
-              )
-    if action == 'test':
-        test(catalog_path=args.catalog_path,
-             checkpoint_path=args.checkpoint_path,
-             hparams_file=args.hparams_file,
-             hdf5_path=args.hdf5_path
-             )
+    if action == "learn":
+        learn(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            model_path=args.model_path,
+        )
+    if action == "test":
+        test(
+            catalog_path=args.catalog_path,
+            checkpoint_path=args.checkpoint_path,
+            hparams_file=args.hparams_file,
+            hdf5_path=args.hdf5_path,
+        )
     if action == "test_one":
-        test_one(catalog_path=args.catalog_path,
-                 checkpoint_path=args.checkpoint_path,
-                 hdf5_path=args.hdf5_path
-                 )
-    if action == 'predict':
-        predict(catalog_path=args.catalog_path,
-                hdf5_path=args.hdf5_path,
-                checkpoint_path=args.checkpoint_path,
-                )
+        test_one(
+            catalog_path=args.catalog_path,
+            checkpoint_path=args.checkpoint_path,
+            hdf5_path=args.hdf5_path,
+        )
+    if action == "predict":
+        predict(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+        )

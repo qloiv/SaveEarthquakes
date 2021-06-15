@@ -29,10 +29,11 @@ chp = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/magnitude/version_33/chec
 # hparams_file = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/hparams.yaml",
 # map_location = None,
 
+
 class ModelCheckpointAtEpochEnd(pl.Callback):
     def on_epoch_end(self, trainer, pl_module):
         metrics = trainer.callback_metrics
-        metrics['epoch'] = trainer.current_epoch
+        metrics["epoch"] = trainer.current_epoch
         if trainer.disable_validation:
             trainer.checkpoint_callback.on_validation_end(trainer, pl_module)
 
@@ -81,7 +82,6 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
 
     model = LitNetwork.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
-
     )
     model.freeze()
 
@@ -90,13 +90,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     event, station, ma, ml = test.iloc[idx][["EVENT", "STATION", "MA", "ML"]]
     print("MA", ma, "ML", ml)
     waveform = np.array(h5data.get(event + "/" + station))
-    filt = signal.butter(
-        2, 2, btype="highpass", fs=100, output="sos"
-    )
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     # set low pass filter
-    lfilt = signal.butter(
-        2, 35, btype="lowpass", fs=100, output="sos"
-    )
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
 
     output = np.zeros(6000 - 2000)
     labels = np.zeros(6000 - 2000)
@@ -125,47 +121,49 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     t = np.linspace(1, 4000, num=4000)
     fig, axs = plt.subplots(5)
     fig.suptitle("Predict Plot")
-    axs[0].plot(t, labels, 'r')
-    axs[0].plot(t, output, 'g')
+    axs[0].plot(t, labels, "r")
+    axs[0].plot(t, output, "g")
     axs[0].axvline(2001, color="blue")
 
     axs[1].axvline(3001, color="blue")
 
-    axs[2].plot(waveform[0], 'r')
-    axs[3].plot(waveform[1], 'b')
-    axs[1].plot(waveform[2], 'g')
+    axs[2].plot(waveform[0], "r")
+    axs[3].plot(waveform[1], "b")
+    axs[1].plot(waveform[2], "g")
 
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
     fig.savefig("predict plot")
 
 
 learn(cp, hp, mp)
-#predict(cp, hp, chp)
-if __name__ == '__main__':
+# predict(cp, hp, chp)
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--action', type=str, required=True)
-    parser.add_argument('--catalog_path', type=str)
-    parser.add_argument('--hdf5_path', type=str)
-    parser.add_argument('--model_path', type=str)
-    parser.add_argument('--checkpoint_path', type=str)
-    parser.add_argument('--hparams_file', type=str)
+    parser.add_argument("--action", type=str, required=True)
+    parser.add_argument("--catalog_path", type=str)
+    parser.add_argument("--hdf5_path", type=str)
+    parser.add_argument("--model_path", type=str)
+    parser.add_argument("--checkpoint_path", type=str)
+    parser.add_argument("--hparams_file", type=str)
     args = parser.parse_args()
     action = args.action
 
-    if action == 'learn':
-        learn(catalog_path=args.catalog_path,
-              hdf5_path=args.hdf5_path,
-              model_path=args.model_path,
-              )
-    if action == 'test':
-        test(catalog_path=args.catalog_path,
-              hdf5_path=args.hdf5_path,
-             checkpoint_path=args.checkpoint_path,
-             hparams_file=args.hparams_file,
-             )
-    if action == 'predict':
-        predict(catalog_path=args.catalog_path,
-                hdf5_path=args.hdf5_path,
-                checkpoint_path=args.checkpoint_path,
-
-                )
+    if action == "learn":
+        learn(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            model_path=args.model_path,
+        )
+    if action == "test":
+        test(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+            hparams_file=args.hparams_file,
+        )
+    if action == "predict":
+        predict(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+        )

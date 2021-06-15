@@ -1,7 +1,16 @@
 import torch.nn
 from pytorch_lightning.core.lightning import LightningModule
-from torch.nn import Linear, ReLU, Flatten, Sequential, Conv1d, MaxPool1d, BatchNorm1d, Softplus, \
-    MSELoss  # GaussianNLLLoss
+from torch.nn import (
+    Linear,
+    ReLU,
+    Flatten,
+    Sequential,
+    Conv1d,
+    MaxPool1d,
+    BatchNorm1d,
+    Softplus,
+    MSELoss,
+)  # GaussianNLLLoss
 
 
 class LitNetwork(LightningModule):
@@ -10,9 +19,7 @@ class LitNetwork(LightningModule):
         self.cnn_layer1 = Sequential(
             Conv1d(3, 32, kernel_size=21, stride=1, padding=10),
             # pytorch hat noch keine padding_mode = same implementation
-            BatchNorm1d(
-                32
-            ),  # batch norm values taken from keras default
+            BatchNorm1d(32),  # batch norm values taken from keras default
             ReLU(),
             MaxPool1d(kernel_size=2, stride=2),
         )
@@ -106,5 +113,7 @@ class LitNetwork(LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters())  # Adam(self.model.parameters(), lr=0.001) is default lr
+        optimizer = torch.optim.Adam(
+            self.parameters()
+        )  # Adam(self.model.parameters(), lr=0.001) is default lr
         return optimizer
