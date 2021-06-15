@@ -87,6 +87,7 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
     new_frame = data.copy()
     data_length = len(data)
     print("Data length before having a look at every trace: ", data_length)
+    inv = inventory
     for idx in tqdm(range(0, data_length)):
         current_row = data.iloc[idx]
         event, station, p_pick, split = current_row[
@@ -108,7 +109,7 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
             starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30)
         )
         # station_stream.plot()
-        station_stream.remove_sensitivity(inventory)
+        station_stream.remove_sensitivity(inv)
         # station_stream.plot()
         if len(station_stream) < 3:
             stream_miss = stream_miss + 1
@@ -176,7 +177,7 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
     )
 
 
-preprocess(cp, wp, csvp, hp, inv_path)
+#preprocess(cp, wp, csvp, hp, inv_path)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     parser.add_argument("--waveform_path", type=str, default=wp)
     parser.add_argument("--csv_path", type=str, default=csvp)
     parser.add_argument("--hdf5_path", type=str, default=hp)
-    parser.add_argument("--hdf5_path", type=str, default=inv_path)
+    parser.add_argument("--inv_path", type=str, default=inv_path)
     args = parser.parse_args()
     action = args.action
 
@@ -194,5 +195,5 @@ if __name__ == "__main__":
             waveform_path=args.waveform_path,
             new_catalog_path=args.csv_path,
             hdf5_path=args.hdf5_path,
-            inventory=args.inventory
+            inventory=args.inv_path
         )
