@@ -54,7 +54,7 @@ inv_path = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, inventory):
     # os.remove(csv_path)
     if os.path.exists(
-            hdf5_path
+        hdf5_path
     ):  # we need this, because 'a' is always going to append?
         os.remove(hdf5_path)
     hf = h5py.File(hdf5_path, "a")
@@ -98,10 +98,11 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
         event, station, p_pick, split = current_row[
             ["EVENT", "STATION", "P_PICK", "SPLIT"]
         ]
-        
+
         # we don t need to check whether this exists, because one of these should definitely exist because we tested before and you can add to empty streams?
-        waveform = (obspy.read(os.path.join(waveform_path,
-                                            f"{event}.mseed")))  #+(obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
+        waveform = obspy.read(
+            os.path.join(waveform_path, f"{event}.mseed")
+        )  # +(obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
 
         assert waveform is not None
 
@@ -115,7 +116,7 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
             starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30)
         )
         # station_stream.plot()
-        #inv_select = inv.select(station=station, channel="HH*",starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30))
+        # inv_select = inv.select(station=station, channel="HH*",starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30))
         station_stream.remove_sensitivity(inv)
         # station_stream.plot()
         if len(station_stream) < 3:
@@ -140,7 +141,7 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
             # (original_length - trace_miss) / original_length,)
             new_frame.drop(current_row.name, inplace=True)
             continue
-            
+
         waveform_np = np.squeeze(np.float32(np.stack((trace_z, trace_n, trace_e))))
         key = str(event) + "/" + str(station)
         if split == "TRAIN":
@@ -204,5 +205,5 @@ if __name__ == "__main__":
             #           waveform_path_add= args.waveform_path,
             new_catalog_path=args.csv_path,
             hdf5_path=args.hdf5_path,
-            inventory=args.inv_path
+            inventory=args.inv_path,
         )

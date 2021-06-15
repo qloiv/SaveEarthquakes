@@ -27,7 +27,7 @@ mp = "/home/viola/WS2021/Code/Models"
 
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
-    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path)
+    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=128)
     logger = TensorBoardLogger("../tb_logs", name="detection")
     trainer = pl.Trainer(
         gpus=[0],
@@ -49,7 +49,7 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
         hparams_file=hparams_file,
         map_location=None,
     )
-    dm = LitDataModule(catalog_path, hdf5_path)
+    dm = LitDataModule(catalog_path, hdf5_path, batch_size=128)
     # init trainer with whatever options
     trainer = pl.Trainer(gpus=[0])
 
@@ -62,10 +62,10 @@ def test_one_displacement(
 ):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
+    event, station, p_pick = test_catalog.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -87,9 +87,9 @@ def test_one_displacement(
                ]
 
     # load obpsy waveforms
-    o_raw_waveform = (obspy.read(os.path.join(waveform_path,
-                                              f"{event}.mseed"))) + (
-                         obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
+    o_raw_waveform = (obspy.read(os.path.join(waveform_path, f"{event}.mseed"))) + (
+        obspy.read(os.path.join(waveform_path_add, f"{event}.mseed"))
+    )
 
     o_waveform = o_raw_waveform.select(station=station, channel="HH*")
     o_station_stream = o_waveform.slice(
@@ -199,11 +199,11 @@ def test_displacement(
 ):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
     # idx = 141
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
+    event, station, p_pick = test_catalog.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -226,9 +226,9 @@ def test_displacement(
                ]
 
     # load obpsy waveforms
-    o_raw_waveform = (obspy.read(os.path.join(waveform_path,
-                                              f"{event}.mseed"))) + (
-                         obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
+    o_raw_waveform = (obspy.read(os.path.join(waveform_path, f"{event}.mseed"))) + (
+        obspy.read(os.path.join(waveform_path_add, f"{event}.mseed"))
+    )
 
     o_waveform = o_raw_waveform.select(station=station, channel="HH*")
     o_station_stream = o_waveform.slice(
@@ -485,10 +485,10 @@ def test_displacement(
 def test_one(catalog_path, checkpoint_path, hdf5_path):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
+    event, station, p_pick = test_catalog.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -576,10 +576,10 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
 def predict(catalog_path, checkpoint_path, hdf5_path):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
     print(idx)
-    event, station, p_pick = test.iloc[idx][["EVENT", "STATION", "P_PICK"]]
+    event, station, p_pick = test_catalog.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
     # load network
     split_key = "test_files"
@@ -741,6 +741,7 @@ test_displacement(
     hdf5_path=hp,
     checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt",
     waveform_path="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
+    waveform_path_add="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
     inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml",
 )
 
