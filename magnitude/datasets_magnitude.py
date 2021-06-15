@@ -101,5 +101,5 @@ class DetectionDataset(Dataset):
 
         station_stream = np.stack((g0, g1, g2))
         station_stream, max_stream = normalize_stream(station_stream)
-        sample = {"waveform": (station_stream, max_stream), "label": label}
+        sample = {"waveform": (station_stream, 0.01 * np.log(max_stream)), "label": label}
         return sample
