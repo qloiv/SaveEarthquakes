@@ -21,21 +21,22 @@ def obspy_detrend(data):
     return data
 
 
+
 def normalize_stream(stream, global_max=False):
+    stream_max = np.abs(stream).max()
     if global_max is True:
-        ma = np.abs(stream).max()
-        stream /= ma
+        stream /= stream_max
     else:
         i = 0
         for tr in stream:
             ma_tr = np.abs(tr).max()
-            if (ma_tr == 0):
+            if ma_tr == 0:
                 i += 1
             else:
                 tr /= ma_tr
         if i == 3:
             print("Der gesamte Stream ist 0")
-    return stream, True
+    return stream, stream_max
 
 
 class DistanceDataset(Dataset):
@@ -126,9 +127,7 @@ class DistanceDataset(Dataset):
             f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
             f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
             station_stream = np.stack((f0, f1, f2))
-            station_stream, bl = normalize_stream(station_stream)
-            if bl is False:
-                continue
+            station_stream, _ = normalize_stream(station_stream)
             sample = {"waveform": station_stream, "label": label}
             return sample
 

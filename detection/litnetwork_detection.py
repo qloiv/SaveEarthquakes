@@ -81,7 +81,6 @@ class LitNetwork(LightningModule):
         self.log("val_loss", loss)
         self.log("val_acc", self.val_acc)
 
-
     def test_step(self, inputs, inputs_idx):
         waveform = inputs["waveform"]
         label = inputs["label"]

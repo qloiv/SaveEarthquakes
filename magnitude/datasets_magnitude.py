@@ -16,21 +16,22 @@ def obspy_detrend(data):
     data -= x1 + np.arange(ndat) * (x2 - x1) / float(ndat - 1)
     return data
 
+
 def normalize_stream(stream, global_max=False):
+    stream_max = np.float32(np.abs(stream).max())
     if global_max is True:
-        ma = np.abs(stream).max()
-        stream /= ma
+        stream /= stream_max
     else:
         i = 0
         for tr in stream:
             ma_tr = np.abs(tr).max()
-            if (ma_tr == 0):
+            if ma_tr == 0:
                 i += 1
             else:
                 tr /= ma_tr
         if i == 3:
             print("Der gesamte Stream ist 0")
-    return stream, True
+    return stream, stream_max
 
 
 def resample_trace(trace, sampling_rate):
@@ -75,7 +76,7 @@ class DetectionDataset(Dataset):
 
         # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
         event, station, magnitude = self.catalog.iloc[idx][["EVENT", "STATION", "MA"]]
-        label = np.int64(np.rint(magnitude))  # round to nearest integer
+        label = np.float32(magnitude)
         waveform = np.array(self.h5data.get(event + "/" + station))
         seq_len = self.time_before + self.time_after  # is 2000 if 20sec Window
         random_point = np.random.randint(seq_len)
@@ -90,6 +91,6 @@ class DetectionDataset(Dataset):
         f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
         f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
         station_stream = np.stack((f0, f1, f2))
-        station_stream, bl = normalize_stream(station_stream)
-        sample = {"waveform": station_stream, "label": label}
+        station_stream, max_stream = normalize_stream(station_stream)
+        sample = {"waveform": (station_stream, max_stream), "label": label}
         return sample
