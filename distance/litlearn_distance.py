@@ -81,7 +81,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
 
     raw_waveform = np.array(h5data.get(event + "/" + station))
     seq_len = 20 * 100  # *sampling rate 20 sec window
-    p_pick_array = 3001
+    p_pick_array = 3000
     random_point = np.random.randint(seq_len)
     waveform = raw_waveform[
                :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
@@ -354,18 +354,18 @@ def predict(
     axs[0].plot(waveform[0], "r")
     axs[1].plot(waveform[1], "b")
     axs[2].plot(waveform[2], "g")
-    axs[0].axvline(3001, color="black", linestyle="dashed", linewidth=0.5)
-    axs[1].axvline(3001, color="black", linestyle="dashed", linewidth=0.5)
-    axs[2].axvline(3001, color="black", linestyle="dashed", linewidth=0.5)
+    axs[0].axvline(3000, color="black", linestyle="dashed", linewidth=0.5)
+    axs[1].axvline(3000, color="black", linestyle="dashed", linewidth=0.5)
+    axs[2].axvline(3000, color="black", linestyle="dashed", linewidth=0.5)
     if s and (s - p) < 30:
         axs[0].axvline(
-            3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
+            3000 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
         )
         axs[1].axvline(
-            3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
+            3000 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
         )
         axs[2].axvline(
-            3001 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
+            3000 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
         )
     real_labels = np.full(6000, distance)
     print(np.shape(real_labels), np.shape(real_output))

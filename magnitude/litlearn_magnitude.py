@@ -123,9 +123,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     fig.suptitle("Predict Plot")
     axs[0].plot(t, labels, "r")
     axs[0].plot(t, output, "g")
-    axs[0].axvline(2001, color="blue")
+    axs[0].axvline(2000, color="blue")
 
-    axs[1].axvline(3001, color="blue")
+    axs[1].axvline(3000, color="blue")
 
     axs[2].plot(waveform[0], "r")
     axs[3].plot(waveform[1], "b")

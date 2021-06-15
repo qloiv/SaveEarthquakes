@@ -50,7 +50,7 @@ class DetectionDataset(Dataset):
         catalog = pd.read_csv(catalog_path)
         self.catalog = catalog[catalog["SPLIT"] == split]
         self.sampling_rate = 100
-        self.p_pick = 3001
+        self.p_pick = 3000
         self.split = str.lower(split) + "_files"
         self.time_before = time_before * self.sampling_rate
         self.time_after = time_after * self.sampling_rate
