@@ -58,7 +58,7 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
 
 
 def test_one_displacement(
-        catalog_path, checkpoint_path, hdf5_path, waveform_path, inv_path
+        catalog_path, checkpoint_path, hdf5_path, waveform_path, waveform_path_add, inv_path
 ):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
@@ -87,10 +87,10 @@ def test_one_displacement(
                ]
 
     # load obpsy waveforms
-    o_raw_waveform = obspy.read(
-        os.path.join(waveform_path, f"{event}.mseed")
-        # we don t need to check whether this exists, because we filtered by waveforms before
-    )
+    o_raw_waveform = (obspy.read(os.path.join(waveform_path,
+                                              f"{event}.mseed"))) + (
+                         obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
+
     o_waveform = o_raw_waveform.select(station=station, channel="HH*")
     o_station_stream = o_waveform.slice(
         starttime=UTCDateTime(p_pick) - random_point / 100,  #
@@ -152,7 +152,7 @@ def test_one_displacement(
     axs[2].plot(g2, "g")
     fig.savefig("TestOneD:Detrended and Filtered")
 
-    station_stream = np.stack((g0, g1, g2))
+    waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
     fig, axs = plt.subplots(3)
     fig.suptitle("After Detrending->Filtering->Normalizing")
@@ -173,7 +173,7 @@ def test_one_displacement(
     new_stream[1].data = waveform[1]
     new_stream[2].data = waveform[0]
     disp = new_stream.copy().remove_response(
-        inventory=inv_selection, pre_filt=None, output="DISP"
+        inventory=inv_selection, pre_filt=None, output="DISP", water_level=30
     )
     disp.plot()
 
@@ -195,7 +195,7 @@ def test_one_displacement(
 
 
 def test_displacement(
-        catalog_path, checkpoint_path, hdf5_path, waveform_path, inv_path
+        catalog_path, checkpoint_path, hdf5_path, waveform_path, waveform_path_add, inv_path
 ):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
@@ -220,16 +220,16 @@ def test_displacement(
     p_pick_array = 3000  # ist bei 3000 weil obspy null indiziert arbeitet, also die Startzeit beginnt bei array 0
     # wir haben eine millisekunde zu viel, weil ich im preprocessing 30s vor und nach dem p Pick auswähle
     random_point = np.random.randint(seq_len)
-    random_point = 150
+    # random_point = 150
     waveform = raw_waveform[
                :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
                ]
 
     # load obpsy waveforms
-    o_raw_waveform = obspy.read(
-        os.path.join(waveform_path, f"{event}.mseed")
-        # we don t need to check whether this exists, because we filtered by waveforms before
-    )
+    o_raw_waveform = (obspy.read(os.path.join(waveform_path,
+                                              f"{event}.mseed"))) + (
+                         obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
+
     o_waveform = o_raw_waveform.select(station=station, channel="HH*")
     o_station_stream = o_waveform.slice(
         starttime=UTCDateTime(p_pick) - random_point / 100,  #
@@ -501,7 +501,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
 
     raw_waveform = np.array(h5data.get(event + "/" + station))
     seq_len = 4 * 100  # *sampling rate
-    p_pick_array = 3001
+    p_pick_array = 3000
     random_point = np.random.randint(seq_len)
     waveform = raw_waveform[
                :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
@@ -639,10 +639,10 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     axs[1].plot(station_stream[1], "b")
     axs[2].plot(station_stream[2], "g")
     axs[3].plot(outs)
-    axs[0].axvline(3001, color="black")
-    axs[1].axvline(3001, color="black")
-    axs[2].axvline(3001, color="black")
-    axs[3].axvline(3001, color="black")
+    axs[0].axvline(3000, color="black")
+    axs[1].axvline(3000, color="black")
+    axs[2].axvline(3000, color="black")
+    axs[3].axvline(3000, color="black")
     fig.savefig("Detection Predict Plot")
     #
     # sequence_length = 4
