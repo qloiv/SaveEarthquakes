@@ -559,7 +559,8 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     out = model(station_stream)
     _, predicted = torch.max(out, 1)
     print(predicted)
-    fig, axs = plt.subplots(3)
+    fig, axs = plt.subplots(3, sharex = True)
+    axs[2].set_xlabel("Time in hundredths of seconds")
     fig.suptitle(
         "Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted))
     )
@@ -736,14 +737,14 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     # plt.savefig("current_plot")
 
 
-test_displacement(
-    catalog_path=cp,
-    hdf5_path=hp,
-    checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt",
-    waveform_path="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
-    waveform_path_add="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
-    inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml",
-)
+#test_displacement(
+#    catalog_path=cp,
+#    hdf5_path=hp,
+#    checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt",
+#    waveform_path="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
+#    waveform_path_add="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
+#    inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml",
+#)
 
 # learn(cp, hp, mp)
 # predict(catalog_path=cp, hdf5_path=hp,
