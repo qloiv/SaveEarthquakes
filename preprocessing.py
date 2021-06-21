@@ -15,7 +15,6 @@ from obspy import UTCDateTime
 from obspy import read_inventory
 from tqdm import tqdm
 
-
 #
 # def filter_missing_files(data, events, input_dirs):
 #     misses = 0
@@ -51,8 +50,8 @@ hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 inv_path = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 
 
-def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, inventory):
-    # os.remove(csv_path)
+def preprocess(catalog_path, waveform_path,waveform_path_add, new_catalog_path, hdf5_path, inventory):
+    #os.remove(csv_path)
     if os.path.exists(
         hdf5_path
     ):  # we need this, because 'a' is always going to append?
@@ -76,9 +75,9 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
         if file.endswith(".mseed"):
             waves.append(file.strip(".mseed"))
     # also add files in waveforms_long_additional
-    # for file in os.listdir(waveform_path_add):
-    #    if file.endswith(".mseed"):
-    #        waves.append(file.strip(".mseed"))
+    for file in os.listdir(waveform_path_add):
+        if file.endswith(".mseed"):
+            waves.append(file.strip(".mseed"))
     print("Number of waveforms found: ", len(waves))
     intersect = list(set(waves).intersection(set(events)))
     data = data[data["EVENT"].isin(intersect)]
@@ -93,6 +92,15 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
     data_length = len(data)
     print("Data length before having a look at every trace: ", data_length)
     inv = read_inventory(inventory)
+    
+         # debug preprocess
+    #event = "2009_11_15_15_43_55_600000"
+    #print(data[data["EVENT"] == event])
+    #print(obspy.read(os.path.join(waveform_path, f"{event}.mseed")))
+    #print(obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
+    #waveform = obspy.read(os.path.join(waveform_path, f"{event}.mseed"))+ obspy.read(os.path.join(waveform_path_add, f"{event}.mseed"))          
+    # end debug preprocess
+    
     for idx in tqdm(range(0, data_length)):
         current_row = data.iloc[idx]
         event, station, p_pick, split = current_row[
@@ -100,10 +108,21 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
         ]
 
         # we don t need to check whether this exists, because one of these should definitely exist because we tested before and you can add to empty streams?
-        waveform = obspy.read(
-            os.path.join(waveform_path, f"{event}.mseed")
-        )  # +(obspy.read(os.path.join(waveform_path_add, f"{event}.mseed")))
 
+        path_full = os.path.join(waveform_path, f"{event}.mseed")
+        path_add = os.path.join(waveform_path_add, f"{event}.mseed")
+        #print(path_full)
+        #print(path_add)
+        if os.path.exists(path_full) and os.path.getsize(path_full)>0 and os.path.exists(path_add)and os.path.getsize(path_add)>0:   
+            waveform = obspy.read(path_full)+obspy.read(path_add)
+        elif os.path.exists(path_full) and os.path.getsize(path_full)>0:
+            waveform = obspy.read(path_full)
+        elif os.path.exists(path_add) and os.path.getsize(path_add)>0:
+            waveform = obspy.read(path_add)
+        else:
+            print("no waveform there")    
+            continue
+            
         assert waveform is not None
 
         station_stream = waveform.select(
@@ -117,7 +136,9 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
         )
         # station_stream.plot()
         # inv_select = inv.select(station=station, channel="HH*",starttime=UTCDateTime(p_pick - 30), endtime=UTCDateTime(p_pick + 30))
-        station_stream.remove_sensitivity(inv)
+        try: station_stream.remove_sensitivity(inv)
+        except: continue
+        #station_stream.remove_sensitivity(inv)       
         # station_stream.plot()
         if len(station_stream) < 3:
             stream_miss = stream_miss + 1
@@ -185,13 +206,13 @@ def preprocess(catalog_path, waveform_path, new_catalog_path, hdf5_path, invento
     )
 
 
-preprocess(cp, wp, csvp, hp, inv_path)
+#preprocess(cp, wp, csvp, hp, inv_path)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
     parser.add_argument("--catalog_path", type=str, default=cp)
     parser.add_argument("--waveform_path", type=str, default=wp)
-    # parser.add_argument("--waveform_path_add", type=str)
+    parser.add_argument("--waveform_path_add", type=str)
     parser.add_argument("--csv_path", type=str, default=csvp)
     parser.add_argument("--hdf5_path", type=str, default=hp)
     parser.add_argument("--inv_path", type=str, default=inv_path)
@@ -202,7 +223,7 @@ if __name__ == "__main__":
         preprocess(
             catalog_path=args.catalog_path,
             waveform_path=args.waveform_path,
-            #           waveform_path_add= args.waveform_path,
+            waveform_path_add= args.waveform_path_add,
             new_catalog_path=args.csv_path,
             hdf5_path=args.hdf5_path,
             inventory=args.inv_path,
