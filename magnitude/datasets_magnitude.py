@@ -51,7 +51,6 @@ class DetectionDataset(Dataset):
             split,
             time_before=10,
             time_after=10,
-            test_run=False,
     ):
         self.split_key = str.lower(split) + "_files"
         self.file_path = hdf5_path

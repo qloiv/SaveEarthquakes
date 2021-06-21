@@ -54,17 +54,17 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     print("hey")
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
     print(idx)
-    event, station, distance, p, s = test.iloc[idx][
+    event, station, distance, p, s = test_catalog.iloc[idx][
         ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
     ]
 
     dist = np.array([1, 600000])
-    print(max(test["DIST"]))
-    assert max(test["DIST"]) <= 600000
-    assert min(test["DIST"]) >= 1
+    print(max(test_catalog["DIST"]))
+    assert max(test_catalog["DIST"]) <= 600000
+    assert min(test_catalog["DIST"]) >= 1
     scaler = MinMaxScaler()
     scaler.fit(dist.reshape(-1, 1))
     ts_dist = scaler.transform(distance.reshape(1, -1))
@@ -116,7 +116,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[2].plot(d2, "g")
     fig.savefig("TestOne:Detrended")
 
-    filt = signal.butter(2, 2, btype="highpass", fs=self.sampling_rate, output="sos")
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
@@ -234,7 +234,7 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
         hparams_file=hparams_file,
         map_location=None,
     )
-    dm = LitDataModule(catalog_path, hdf5_path)
+    dm = LitDataModule(catalog_path, hdf5_path, batch_size=128)
     # init trainer with whatever options
     trainer = pl.Trainer(gpus=[0])
 
@@ -247,17 +247,17 @@ def predict(
 ):  # TODO put sequence length into variable
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
     print(idx)
-    event, station, distance, p, s = test.iloc[idx][
+    event, station, distance, p, s = test_catalog.iloc[idx][
         ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
     ]
 
     dist = np.array([1, 600000])
-    print(max(test["DIST"]))
-    assert max(test["DIST"]) <= 600000
-    assert min(test["DIST"]) >= 1
+    print(max(test_catalog["DIST"]))
+    assert max(test_catalog["DIST"]) <= 600000
+    assert min(test_catalog["DIST"]) >= 1
     scaler = MinMaxScaler()
     scaler.fit(dist.reshape(-1, 1))
     ts_dist = scaler.transform(distance.reshape(1, -1))

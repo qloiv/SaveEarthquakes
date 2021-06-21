@@ -46,7 +46,6 @@ class DistanceDataset(Dataset):
             split,
             time_before=10,
             time_after=10,
-            test_run=False,
     ):
         self.split_key = str.lower(split) + "_files"
         self.file_path = hdf5_path
@@ -69,7 +68,7 @@ class DistanceDataset(Dataset):
 
         self.scaler = MinMaxScaler()
         self.scaler.fit(dist.reshape(-1, 1))
-        t_dist = self.scaler.transform(dist.reshape(-1, 1))
+        # t_dist = self.scaler.transform(dist.reshape(-1, 1))
 
         self.catalog = catalog[catalog["SPLIT"] == split]
         self.sampling_rate = 100
@@ -140,56 +139,3 @@ class DistanceDataset(Dataset):
             station_stream, _ = normalize_stream(station_stream)
             sample = {"waveform": station_stream, "label": label}
             return sample
-
-#
-# def get_data_loaders(
-#         catalog_path,
-#         hdf5_path,
-#         batch_size=64,
-#         num_workers=4,
-#         shuffle=True,
-#         test_run=False,
-# ):
-#     if test_run:
-#         num_workers = 1
-#
-#     training_data = DistanceDataset(
-#         catalog_path=catalog_path,
-#         hdf5_path=hdf5_path,
-#         split="TRAIN",
-#         test_run=test_run,
-#     )
-#     validation_data = DistanceDataset(
-#         catalog_path=catalog_path,
-#         hdf5_path=hdf5_path,
-#         split="DEV",
-#         test_run=test_run,
-#     )
-#
-#     training_loader = DataLoader(
-#         training_data, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle
-#     )
-#     validation_loader = DataLoader(
-#         validation_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
-#     )
-#
-#     return training_loader, validation_loader
-#
-#
-# def get_test_loader(
-#         catalog_path, hdf5_path, batch_size=64, num_workers=4, test_run=False
-# ):
-#     if test_run:
-#         num_workers = 1
-#     test_data = DistanceDataset(
-#         catalog_path=catalog_path,
-#         hdf5_path=hdf5_path,
-#         split="TEST",
-#         test_run=test_run,
-#     )
-#
-#     test_loader = DataLoader(
-#         test_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
-#     )
-#
-#     return test_loader

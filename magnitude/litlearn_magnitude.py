@@ -64,7 +64,7 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
         hparams_file=hparams_file,
         map_location=None,
     )
-    dm = LitDataModule(catalog_path, hdf5_path)
+    dm = LitDataModule(catalog_path, hdf5_path, batch_size=128)
     # init trainer with whatever options
     trainer = pl.Trainer(gpus=[0])
 
@@ -85,9 +85,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     )
     model.freeze()
 
-    test = catalog[catalog["SPLIT"] == "TEST"]
-    idx = randrange(0, len(test))
-    event, station, ma, ml = test.iloc[idx][["EVENT", "STATION", "MA", "ML"]]
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
+    event, station, ma, ml = test_catalog.iloc[idx][["EVENT", "STATION", "MA", "ML"]]
     print("MA", ma, "ML", ml)
     waveform = np.array(h5data.get(event + "/" + station))
     filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")

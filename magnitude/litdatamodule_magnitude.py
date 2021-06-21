@@ -25,7 +25,6 @@ class LitDataModule(LightningDataModule):
             catalog_path=self.catalog_path,
             hdf5_path=self.hdf5_path,
             split="TRAIN",
-            test_run=test_run,
         )
         training_loader = DataLoader(
             training_data,
@@ -37,12 +36,10 @@ class LitDataModule(LightningDataModule):
 
     def val_dataloader(self):
         num_workers = 4
-        test_run = False
         validation_data = DetectionDataset(
             catalog_path=self.catalog_path,
             hdf5_path=self.hdf5_path,
             split="DEV",
-            test_run=test_run,
         )
 
         validation_loader = DataLoader(
@@ -62,7 +59,6 @@ class LitDataModule(LightningDataModule):
             catalog_path=self.catalog_path,
             hdf5_path=self.hdf5_path,
             split="TEST",
-            test_run=test_run,
         )
 
         test_loader = DataLoader(

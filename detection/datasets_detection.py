@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from scipy import signal
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 
 def obspy_detrend(data):
@@ -42,7 +42,6 @@ class DetectionDataset(Dataset):
             split,
             time_before=2,
             time_after=2,
-            test_run=False,
     ):
         self.split_key = str.lower(split) + "_files"
         self.file_path = hdf5_path
@@ -113,56 +112,3 @@ class DetectionDataset(Dataset):
             station_stream, _ = normalize_stream(station_stream)
             sample = {"waveform": station_stream, "label": label}
             return sample
-
-
-def get_data_loaders(
-        catalog_path,
-        hdf5_path,
-        batch_size=2048,
-        num_workers=4,
-        shuffle=True,
-        test_run=False,
-):
-    if test_run:
-        num_workers = 1
-
-    training_data = DetectionDataset(
-        catalog_path=catalog_path,
-        hdf5_path=hdf5_path,
-        split="TRAIN",
-        test_run=test_run,
-    )
-    validation_data = DetectionDataset(
-        catalog_path=catalog_path,
-        hdf5_path=hdf5_path,
-        split="DEV",
-        test_run=test_run,
-    )
-
-    training_loader = DataLoader(
-        training_data, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle
-    )
-    validation_loader = DataLoader(
-        validation_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
-    )
-
-    return training_loader, validation_loader
-
-
-def get_test_loader(
-        catalog_path, hdf5_path, batch_size=2048, num_workers=4, test_run=False
-):
-    if test_run:
-        num_workers = 1
-    test_data = DetectionDataset(
-        catalog_path=catalog_path,
-        hdf5_path=hdf5_path,
-        split="TEST",
-        test_run=test_run,
-    )
-
-    test_loader = DataLoader(
-        test_data, batch_size=batch_size, num_workers=num_workers, shuffle=False
-    )
-
-    return test_loader
