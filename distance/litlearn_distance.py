@@ -144,8 +144,8 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
 
     station_stream = torch.from_numpy(waveform[None])
     outputs = model(station_stream)
-    learned = outputs[0]
-    var = outputs[1]
+    learned = outputs[0][0]
+    var = outputs[1][0]
     print(learned, var)
 
     sigma = np.sqrt(var)
@@ -184,6 +184,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     t = np.linspace(1, 2000, num=2000)
     var1 = learned + var
     var2 = learned - var
+    print(t, learned)
     axs[3].fill_between(t, learned, learned + 3 * sigma, alpha=0.01, color="green")
     axs[3].fill_between(t, learned, learned - 3 * sigma, alpha=0.01, color="green")
     axs[3].fill_between(t, learned, learned + 2 * sigma, alpha=0.2, color="green")
@@ -225,7 +226,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
         )
 
     fig.savefig("TestOne: Results")
-    h5data.close()
+    #h5data.close()
 
 
 def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
@@ -302,8 +303,9 @@ def predict(
         station_stream = torch.from_numpy(station_stream[None])
 
         outputs = model(station_stream)
-        learned = outputs[:, 0]
-        var = outputs.data[:, 1]
+        #print("outputs", outputs)
+        learned = outputs[0]
+        var = outputs[1]
         sigma = np.sqrt(var)
         s_sig[i + 2000] = sigma
         real_sig[i + 2000] = scaler.inverse_transform(sigma.reshape(1, -1))[0]
@@ -351,57 +353,60 @@ def predict(
     waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
 
-    axs[0].plot(waveform[0], "r")
-    axs[1].plot(waveform[1], "b")
-    axs[2].plot(waveform[2], "g")
+
+    fig, axs = plt.subplots(2, sharex=True)
+    axs[1].set_xlabel("Time in milliseconds",fontdict={"fontsize": 8})
+    fig.suptitle(
+        "Distance prediction plot, the real distance ist about " + str(np.int(distance/1000)) + "km"
+    )
+    axs[0].plot(waveform[0], "r", linewidth=0.5)
+    axs[0].plot(waveform[1], "b", linewidth=0.5)
+    axs[0].plot(waveform[2], "g", linewidth=0.5)
     axs[0].axvline(3000, color="black", linestyle="dashed", linewidth=0.5)
-    axs[1].axvline(3000, color="black", linestyle="dashed", linewidth=0.5)
-    axs[2].axvline(3000, color="black", linestyle="dashed", linewidth=0.5)
     if s and (s - p) < 30:
         axs[0].axvline(
             3000 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
         )
-        axs[1].axvline(
-            3000 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
-        )
-        axs[2].axvline(
-            3000 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
-        )
-    real_labels = np.full(6000, distance)
-    print(np.shape(real_labels), np.shape(real_output))
-    # axs[3].title.set_text("Absolute Error in m")
-    # scale_y = 1000 #metres to km
-    # ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/scale_y))
-    # axs[3].yaxis.set_major_formatter(ticks_y)
-    # axs[3].plot(t,np.abs(real_output-real_labels))
+    axs[0].set_title(
+        "Normalized and filtered input for Z(red), N(blue) and E(green) with P-pick (and S-Pick, if there)",
+        fontdict={"fontsize": 8},
+    )
 
-    # axs[4].title.set_text("Target, learned value and 68% conf interval")
+    # axs[1,0].axvline(random_point, color="black")
+    # axs[2,0].axvline(random_point, color="black")
+    #axs[1].set_title("Computed distance versus real distance", fontdict={"fontsize": 8})
+    #scale_y = 1000  # metres to km
+    #ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
+    #axs[1].yaxis.set_major_formatter(ticks_y)
+    #axs[1].axhline(distance, color="black", linestyle="dashed")
+    #axs[1].plot(t, real_output, color="green", alpha=0.7, linewidth = 0.5)
+    #axs[1].set_ylabel("Distance in km",fontdict={"fontsize": 8})
+
     scale_y = 1000  # metres to km
     ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
-    axs[4].yaxis.set_major_formatter(ticks_y)
-    axs[4].axhline(distance, color="black", linestyle="dashed")
-    axs[4].plot(t, real_output, color="green", alpha=0.7)
+    axs[1].set_ylabel("Distance in km",fontdict={"fontsize": 8})
+    axs[1].set_title("Distance and standard deviation", fontdict={"fontsize": 8})
+    axs[1].yaxis.set_major_formatter(ticks_y)
+    axs[1].axhline(distance, color="black", linestyle="dashed")
+    axs[1].plot(t, real_output, color="green", alpha=0.7, linewidth = 0.7)
     # axs[4].plot(t,real_output+real_sig, color = "green", alpha = 0.3)
     # axs[4].plot(t,real_output-real_sig, color = "green", alpha = 0.3)
-    axs[4].fill_between(
+    axs[1].fill_between(
         t, real_output, real_output + real_sig, alpha=0.3, color="green"
     )
-    axs[4].fill_between(
+    axs[1].fill_between(
         t, real_output, real_output - real_sig, alpha=0.3, color="green"
     )
-
-    scale_y = 1000  # metres to km
-    ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
-    axs[3].yaxis.set_major_formatter(ticks_y)
-    axs[3].axhline(distance, color="black", linestyle="dashed")
-    axs[3].plot(t, real_output, color="green", alpha=0.7)
-
+    
+    fig.tight_layout()
+    fig.savefig(
+        "Prediction Plot", dpi=600
+    )
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
-    fig.savefig("predict plot")
-    h5data.close()
+    #h5data.close()
 
 
-learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
+#learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
