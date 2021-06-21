@@ -66,6 +66,26 @@ def analyse(cp):
         distances_val.max(),
         distances_val.min(),
     )
+    # hypo or epicentral distance
+
+    print(np.all(distances > depth))
+    print(np.any(np.greater(depth, distances)) == True)
+
+    # p to s time
+    s_picks = catalog["S_PICK"]
+    p_picks = catalog["P_PICK"]
+    diff = np.array(s_picks - p_picks)
+    diff.sort()
+    t = np.arange(len(diff))
+     
+    fig_sp = plt.figure()
+    axes = fig_sp.add_subplot(111)
+    fig_sp.suptitle("Time between P-Pick and S-Pick. Up to " + str(np.round(np.sum(diff <= 20)/len(diff), decimals = 2)) + "% of the examples\n(from all train, test or dev sets) may include the S-Wave")
+    plt.scatter(t,diff, s = 0.5)
+    axes.axhline(20, color="black", linestyle="dashed", linewidth=0.5)
+    plt.ylabel("P to S-wave time in seconds")
+    plt.xlabel("Number of Examples")
+    fig_sp.savefig("P to S Time.png")
 
     magnitudes = catalog["MA"]
     magnitudes_train = train["MA"]
@@ -168,15 +188,16 @@ def analyse(cp):
     # fig3 = plt.figure()
     # axes1 = fig3.add_subplot(111)
 
-    axes1.scatter(magnitudes, distances / 1000, s=0.2)
-    axes1.set_xscale("log")
-    fig3.savefig("scatterplot.png")
 
-    # magnitudes.plot()
-    # plt.show()
+#    axes1.scatter(magnitudes, distances / 1000, s=0.2)
+#    axes1.set_xscale("log")
+#    fig3.savefig("scatterplot.png")
+
+# magnitudes.plot()
+# plt.show()
 
 
-# analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
+#analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
