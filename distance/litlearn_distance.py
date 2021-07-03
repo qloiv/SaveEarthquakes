@@ -19,11 +19,11 @@ from datasets_distance import obspy_detrend, normalize_stream
 from litdatamodule_distance import LitDataModule
 from litnetwork_distance import LitNetwork
 
-cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
+hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 mp = "/home/viola/WS2021/Code/Models"
-chp = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/distance/version_5/checkpoints/epoch=20-step=671.ckpt"
+chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
 
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
@@ -48,6 +48,297 @@ def learn(catalog_path, hdf5_path, model_path):
     # now = datetime.now().strftime("%Y-%m-%d %H:%M")
     # path = "GPD_net_" + str(now) + ".pth"
     # torch.save(network.state_dict(), os.path.join(model_path, path))
+
+
+def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
+    # load catalog
+    catalog = pd.read_csv(catalog_path)
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+
+    split_key = "test_files"
+    file_path = hdf5_path
+    h5data = h5py.File(file_path, "r").get(split_key)
+
+    # load model
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+
+    # load scaler
+    dist = np.array([1, 600000])
+    print(max(test_catalog["DIST"]))
+    assert max(test_catalog["DIST"]) <= 600000
+    assert min(test_catalog["DIST"]) >= 1
+    scaler = MinMaxScaler()
+    scaler.fit(dist.reshape(-1, 1))
+
+    # list for storing mean and variance
+    sigma = []
+    mean = []
+    true = []
+    true_s = []
+    sigma_s = []
+    mean_s = []
+
+    # preload filters
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
+
+    # iterate through catalogue
+    for idx in tqdm(range(0, len(test_catalog))):
+        event, station, distance, p, s = test_catalog.iloc[idx][
+            ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
+        ]
+
+        # load subsequent waveform
+        raw_waveform = np.array(h5data.get(event + "/" + station))
+        seq_len = 20 * 100  # *sampling rate 20 sec window
+        p_pick_array = 3000
+        random_point = np.random.randint(seq_len)
+        waveform = raw_waveform[
+                   :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+                   ]
+
+        # modify waveform for input
+        d0 = obspy_detrend(waveform[0])
+        d1 = obspy_detrend(waveform[1])
+        d2 = obspy_detrend(waveform[2])
+
+        f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+        f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+        f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+        g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+        g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+        g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+        waveform = np.stack((g0, g1, g2))
+        waveform, _ = normalize_stream(waveform)
+
+        # evaluate stream
+        station_stream = torch.from_numpy(waveform[None])
+        outputs = model(station_stream)
+        learned = outputs[0][0]
+        variance = outputs[1][0]
+
+        sig = np.sqrt(variance)
+        r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0]
+        r_sigma = scaler.inverse_transform(sig.reshape(1, -1))[0]
+
+        # check if the s pick already arrived
+        if s and (s - p) * 100 < (seq_len - random_point):
+            # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
+            sigma_s.append(r_sigma)
+            mean_s.append(r_learned)
+            true_s.append(distance)
+        else:
+            sigma.append(r_sigma)
+            mean.append(r_learned)
+            true.append(distance)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance"
+    )
+    axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
+                linewidth=0.3, alpha=0.5)
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D:PredvsTrue_simple", dpi=600)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance with S wave examples shown"
+    )
+    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+                alpha=0.5)
+    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
+                alpha=0.5)
+
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D:PredvsTrue", dpi=600)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance without S Wave examples"
+    )
+    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+                alpha=0.5)
+
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D:PredvsTrue without S Waves", dpi=600)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance with S Wave examples"
+    )
+    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+                alpha=0.5)
+
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D:PredvsTrue with S Waves", dpi=600)
+
+
+def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan):
+    # load catalog
+    catalog = pd.read_csv(catalog_path)
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+
+    split_key = "test_files"
+    file_path = hdf5_path
+    h5data = h5py.File(file_path, "r").get(split_key)
+
+    # load model
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+
+    # load scaler
+    dist = np.array([1, 600000])
+    print(max(test_catalog["DIST"]))
+    assert max(test_catalog["DIST"]) <= 600000
+    assert min(test_catalog["DIST"]) >= 1
+    scaler = MinMaxScaler()
+    scaler.fit(dist.reshape(-1, 1))
+
+    # list for storing mean and variance
+    sigma = []
+    mean = []
+    true = []
+    sigma_s = []
+    mean_s = []
+    true_s = []
+
+    # timespan = 1
+
+    # preload filters
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
+
+    # iterate through catalogue
+    for idx in tqdm(range(0, len(test_catalog))):
+        event, station, distance, p, s = test_catalog.iloc[idx][
+            ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
+        ]
+
+        # load subsequent waveform
+        raw_waveform = np.array(h5data.get(event + "/" + station))
+        seq_len = 20 * 100  # *sampling rate 20 sec window
+        p_pick_array = 3000
+        random_point = int(seq_len - timespan * 100)
+        waveform = raw_waveform[
+                   :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+                   ]
+
+        # modify waveform for input
+        d0 = obspy_detrend(waveform[0])
+        d1 = obspy_detrend(waveform[1])
+        d2 = obspy_detrend(waveform[2])
+
+        f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+        f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+        f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+        g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+        g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+        g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+        waveform = np.stack((g0, g1, g2))
+        waveform, _ = normalize_stream(waveform)
+
+        # evaluate stream
+        station_stream = torch.from_numpy(waveform[None])
+        outputs = model(station_stream)
+        learned = outputs[0][0]
+        variance = outputs[1][0]
+
+        sig = np.sqrt(variance)
+        r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0]
+        r_sigma = scaler.inverse_transform(sig.reshape(1, -1))[0]
+
+        # check if the s pick already arrived
+        if s and (s - p) * 100 < (seq_len - random_point):
+            # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
+            sigma_s.append(r_sigma)
+            mean_s.append(r_learned)
+            true_s.append(distance)
+        else:
+            sigma.append(r_sigma)
+            mean.append(r_learned)
+            true.append(distance)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance, timespan = " + str(timespan) + "sec")
+    axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
+                linewidth=0.3, alpha=0.5)
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D2:PredvsTrue_simple_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance with S wave examples shown, timespan = " + str(timespan) + "sec"
+    )
+    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+                alpha=0.5)
+    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
+                alpha=0.5)
+
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D2:PredvsTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance without S Wave examples, timespan = " + str(timespan) + "sec"
+    )
+    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+                alpha=0.5)
+
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D2:PredvsTrue without S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+
+    # plot Pred vs True simple one
+    fig, axs = plt.subplots(1)
+    fig.suptitle(
+        "Pred vs True for the distance with S Wave examples, timespan = " + str(timespan) + "sec"
+    )
+    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+                alpha=0.5)
+
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True distance in km")
+    plt.ylabel("Predicted distance in km")
+    fig.savefig("D2:PredvsTrue with S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
 
 
 def test_one(catalog_path, checkpoint_path, hdf5_path):
@@ -226,7 +517,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
         )
 
     fig.savefig("TestOne: Results")
-    #h5data.close()
+    # h5data.close()
 
 
 def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
@@ -303,7 +594,7 @@ def predict(
         station_stream = torch.from_numpy(station_stream[None])
 
         outputs = model(station_stream)
-        #print("outputs", outputs)
+        # print("outputs", outputs)
         learned = outputs[0]
         var = outputs[1]
         sigma = np.sqrt(var)
@@ -353,11 +644,10 @@ def predict(
     waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
 
-
     fig, axs = plt.subplots(2, sharex=True)
-    axs[1].set_xlabel("Time in milliseconds",fontdict={"fontsize": 8})
+    axs[1].set_xlabel("Time in milliseconds", fontdict={"fontsize": 8})
     fig.suptitle(
-        "Distance prediction plot, the real distance ist about " + str(np.int(distance/1000)) + "km"
+        "Distance prediction plot, the real distance ist about " + str(np.int(distance / 1000)) + "km"
     )
     axs[0].plot(waveform[0], "r", linewidth=0.5)
     axs[0].plot(waveform[1], "b", linewidth=0.5)
@@ -374,21 +664,21 @@ def predict(
 
     # axs[1,0].axvline(random_point, color="black")
     # axs[2,0].axvline(random_point, color="black")
-    #axs[1].set_title("Computed distance versus real distance", fontdict={"fontsize": 8})
-    #scale_y = 1000  # metres to km
-    #ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
-    #axs[1].yaxis.set_major_formatter(ticks_y)
-    #axs[1].axhline(distance, color="black", linestyle="dashed")
-    #axs[1].plot(t, real_output, color="green", alpha=0.7, linewidth = 0.5)
-    #axs[1].set_ylabel("Distance in km",fontdict={"fontsize": 8})
+    # axs[1].set_title("Computed distance versus real distance", fontdict={"fontsize": 8})
+    # scale_y = 1000  # metres to km
+    # ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
+    # axs[1].yaxis.set_major_formatter(ticks_y)
+    # axs[1].axhline(distance, color="black", linestyle="dashed")
+    # axs[1].plot(t, real_output, color="green", alpha=0.7, linewidth = 0.5)
+    # axs[1].set_ylabel("Distance in km",fontdict={"fontsize": 8})
 
     scale_y = 1000  # metres to km
     ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
-    axs[1].set_ylabel("Distance in km",fontdict={"fontsize": 8})
+    axs[1].set_ylabel("Distance in km", fontdict={"fontsize": 8})
     axs[1].set_title("Distance and standard deviation", fontdict={"fontsize": 8})
     axs[1].yaxis.set_major_formatter(ticks_y)
     axs[1].axhline(distance, color="black", linestyle="dashed")
-    axs[1].plot(t, real_output, color="green", alpha=0.7, linewidth = 0.7)
+    axs[1].plot(t, real_output, color="green", alpha=0.7, linewidth=0.7)
     # axs[4].plot(t,real_output+real_sig, color = "green", alpha = 0.3)
     # axs[4].plot(t,real_output-real_sig, color = "green", alpha = 0.3)
     axs[1].fill_between(
@@ -397,17 +687,19 @@ def predict(
     axs[1].fill_between(
         t, real_output, real_output - real_sig, alpha=0.3, color="green"
     )
-    
+
     fig.tight_layout()
     fig.savefig(
         "Prediction Plot", dpi=600
     )
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
-    #h5data.close()
+    # h5data.close()
 
 
-#learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
+# learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
+predtrue_timespan(cp, chp, hp, 0.5)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)

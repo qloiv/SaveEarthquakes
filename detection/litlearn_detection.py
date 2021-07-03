@@ -172,6 +172,7 @@ def test_one_displacement(
     new_stream[0].data = waveform[2]
     new_stream[1].data = waveform[1]
     new_stream[2].data = waveform[0]
+    # TODO warum umsortiert
     disp = new_stream.copy().remove_response(
         inventory=inv_selection, pre_filt=None, output="DISP", water_level=30
     )
