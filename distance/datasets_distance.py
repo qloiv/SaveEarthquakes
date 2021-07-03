@@ -110,7 +110,7 @@ class DistanceDataset(Dataset):
             ts_dist = self.scaler.transform(distance.reshape(1, -1))
             label = np.float32(ts_dist.squeeze())
 
-            # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
+            # in all waveforms in the hdf5 catalogue, the pick was placed at index 3000
             waveform = self.h5dict[event][station]
             seq_len = self.time_before + self.time_after  # is 2000 if 20sec Window
             random_point = np.random.randint(seq_len)
