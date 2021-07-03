@@ -33,7 +33,7 @@ chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-
 
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
-    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=128)
+    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=1024)
     logger = TensorBoardLogger("../tb_logs", name="distance")
     trainer = pl.Trainer(
         gpus=[0],
