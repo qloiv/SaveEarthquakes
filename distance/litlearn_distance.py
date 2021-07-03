@@ -12,6 +12,7 @@ import pytorch_lightning as pl
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
@@ -137,62 +138,78 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
             mean.append(r_learned)
             true.append(distance)
 
-    # plot Pred vs True simple one
-    fig, axs = plt.subplots(1)
-    fig.suptitle(
-        "Pred vs True for the distance"
-    )
-    axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
-                linewidth=0.3, alpha=0.5)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
-    fig.savefig("D:PredvsTrue_simple", dpi=600)
+    # # plot Pred vs True simple one
+    # rsme = mean_squared_error(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, squared=False)
+    #
+    # fig, axs = plt.subplots(1)
+    # fig.suptitle(
+    #     "Pred vs True for the distance, RSME = " + str(rsme)
+    # )
+    # axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
+    #             linewidth=0.3, alpha=0.5)
+    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    # plt.axis('square')
+    # plt.xlabel("True distance in km")
+    # plt.ylabel("Predicted distance in km")
+    # fig.savefig("D:PredvsTrue_simple", dpi=600)
 
     # plot Pred vs True simple one
+    rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False), decimals=2)
+    rsme_s = np.round(mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False), decimals=2)
+    rsme = np.round(mean_squared_error(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, squared=False),
+                    decimals=2)
+
     fig, axs = plt.subplots(1)
+    axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
-        "Pred vs True for the distance with S wave examples shown"
-    )
+        "Pred vs True for the distance with S wave examples shown, \nRSME(both) = " + str(
+            rsme) + ", RSME(no S wave)=" + str(rsme_p) +
+        ", RSME(with S wave)=" + str(rsme_s), fontsize=8)
     axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-                alpha=0.5)
+                alpha=0.5, label="Examples without a S-Wave")
     axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
-                alpha=0.5)
-
+                alpha=0.3, label="Examples with a S-Wave")
+    axs.legend(loc=0)
     axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
     plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
+    plt.xlabel("True distance in km", fontsize=8)
+    plt.ylabel("Predicted distance in km", fontsize=8)
     fig.savefig("D:PredvsTrue", dpi=600)
 
-    # plot Pred vs True simple one
-    fig, axs = plt.subplots(1)
-    fig.suptitle(
-        "Pred vs True for the distance without S Wave examples"
-    )
-    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-                alpha=0.5)
+    # # plot Pred vs True simple one
+    # rsme_p = mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False)
+    # fig, axs = plt.subplots(1)
+    # fig.suptitle(
+    #     "Pred vs True for the distance without S Wave examples, RSME = " + str(rsme_p)
+    # )
+    # axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+    #             alpha=0.5)
+    #
+    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    # plt.axis('square')
+    # plt.xlabel("True distance in km")
+    # plt.ylabel("Predicted distance in km")
+    # fig.savefig("D:PredvsTrue without S Waves", dpi=600)
+    #
+    # # plot Pred vs True simple one
+    # rsme_s = mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False)
+    # fig, axs = plt.subplots(1)
+    # fig.suptitle(
+    #     "Pred vs True for the distance with S Wave examples, RSME=" + str(rsme_s)
+    # )
+    # axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+    #             alpha=0.5)
+    #
+    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    # plt.axis('square')
+    # plt.xlabel("True distance in km")
+    # plt.ylabel("Predicted distance in km")
+    # fig.savefig("D:PredvsTrue with S Waves", dpi=600)
 
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
-    fig.savefig("D:PredvsTrue without S Waves", dpi=600)
 
-    # plot Pred vs True simple one
-    fig, axs = plt.subplots(1)
-    fig.suptitle(
-        "Pred vs True for the distance with S Wave examples"
-    )
-    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-                alpha=0.5)
-
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
-    fig.savefig("D:PredvsTrue with S Waves", dpi=600)
+def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
+    for t in timespan_array:
+        predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
 
 
 def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan):
@@ -285,60 +302,76 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan):
             true.append(distance)
 
     # plot Pred vs True simple one
-    fig, axs = plt.subplots(1)
-    fig.suptitle(
-        "Pred vs True for the distance, timespan = " + str(timespan) + "sec")
-    axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
-                linewidth=0.3, alpha=0.5)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
-    fig.savefig("D2:PredvsTrue_simple_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+    rsme = np.round(mean_squared_error(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, squared=False),
+                    decimals=2)
+    rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False), decimals=2)
+    if len(true_s) == 0:
+        rsme_s = -1
+    else:
+        rsme_s = np.round(mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False),
+                          decimals=2)
+    # fig, axs = plt.subplots(1)
+    # fig.suptitle(
+    #     "Pred vs True for the distance, timespan = " + str(timespan) + "sec\n RSME(all) = " + str(rsme) +
+    #     " RSME(S waves) = " + str(rsme_s) + " RSME(no S wave)= "+ str(rsme_p))
+    # axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
+    #             linewidth=0.3, alpha=0.5)
+    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    # plt.axis('square')
+    # plt.xlabel("True distance in km")
+    # plt.ylabel("Predicted distance in km")
+    # fig.savefig("D2:PredvsTrue_simple_" + str(timespan).replace(".", "_") + "sec", dpi=600)
 
     # plot Pred vs True simple one
     fig, axs = plt.subplots(1)
+    axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
-        "Pred vs True for the distance with S wave examples shown, timespan = " + str(timespan) + "sec"
-    )
+        "Prediction vs True for the distance \n RSME(all) = " + str(rsme) +
+        ", RSME(S waves) = " + str(rsme_s) + ", RSME(no S wave)= " + str(rsme_p), fontsize=9)
+    # ps = axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+    #             alpha=0.5)
+    # ss= axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
+    #             alpha=0.3)
+    # extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
+    # axs.legend([ps, ss, extra], ["Examples without a S-Wave", 'Examples with a S-Wave', 'Time after P-Wave arrival: ' + str(timespan)])
     axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-                alpha=0.5)
+                alpha=0.5, label="Examples without the S-Wave")
     axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
-                alpha=0.5)
-
+                alpha=0.3, label="Examples with S-Wave")
+    axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
     axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
     plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
+    plt.xlabel("True distance in km", fontsize=8)
+    plt.ylabel("Predicted distance in km", fontsize=8)
     fig.savefig("D2:PredvsTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600)
-
-    # plot Pred vs True simple one
-    fig, axs = plt.subplots(1)
-    fig.suptitle(
-        "Pred vs True for the distance without S Wave examples, timespan = " + str(timespan) + "sec"
-    )
-    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-                alpha=0.5)
-
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
-    fig.savefig("D2:PredvsTrue without S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
-
-    # plot Pred vs True simple one
-    fig, axs = plt.subplots(1)
-    fig.suptitle(
-        "Pred vs True for the distance with S Wave examples, timespan = " + str(timespan) + "sec"
-    )
-    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-                alpha=0.5)
-
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
-    plt.xlabel("True distance in km")
-    plt.ylabel("Predicted distance in km")
-    fig.savefig("D2:PredvsTrue with S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+    #
+    # # plot Pred vs True simple one
+    # fig, axs = plt.subplots(1)
+    # fig.suptitle(
+    #     "Pred vs True for the distance without S Wave examples, timespan = " + str(timespan) + "sec"
+    # )
+    # axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+    #             alpha=0.5)
+    #
+    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    # plt.axis('square')
+    # plt.xlabel("True distance in km")
+    # plt.ylabel("Predicted distance in km")
+    # fig.savefig("D2:PredvsTrue without S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+    #
+    # # plot Pred vs True simple one
+    # fig, axs = plt.subplots(1)
+    # fig.suptitle(
+    #     "Pred vs True for the distance with S Wave examples, timespan = " + str(timespan) + "sec"
+    # )
+    # axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+    #             alpha=0.5)
+    #
+    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    # plt.axis('square')
+    # plt.xlabel("True distance in km")
+    # plt.ylabel("Predicted distance in km")
+    # fig.savefig("D2:PredvsTrue with S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
 
 
 def test_one(catalog_path, checkpoint_path, hdf5_path):
@@ -698,8 +731,7 @@ def predict(
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
-predtrue_timespan(cp, chp, hp, 0.5)
-
+timespan_iteration(cp, chp, hp, [8])
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
