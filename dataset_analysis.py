@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, gaussian_kde
 from scipy.stats import spearmanr
 
 
@@ -174,12 +174,13 @@ def analyse(cp):
     plt.ylabel("Number of Examples")
     fig6.savefig("histogram_depth.png")
 
-    
     fig7 = plt.figure()
     fig7.suptitle("Distance to Depth Scatterplot")
     axes = fig7.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
-    plt.scatter(distances/1000, depth, s = 1, alpha = 0.01)
+    xy = np.vstack([distances / 1000, depth])
+    z = gaussian_kde(xy)(xy)
+    plt.scatter(distances / 1000, depth, c=z, s=1, alpha=0.1)
     plt.xlabel("Distance in km")
     plt.ylabel("Depth in km")
     fig7.savefig("depth_distance.png")
@@ -207,7 +208,7 @@ def analyse(cp):
 # plt.show()
 
 
-#analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
+analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
