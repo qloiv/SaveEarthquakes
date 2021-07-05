@@ -180,7 +180,7 @@ def analyse(cp):
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
     xy = np.vstack([distances / 1000, depth])
     z = gaussian_kde(xy)(xy)
-    plt.scatter(distances / 1000, depth, c=z, s=1, alpha=0.1)
+    plt.scatter(distances / 1000, depth, c=z, s=1, alpha=0.01)
     plt.xlabel("Distance in km")
     plt.ylabel("Depth in km")
     fig7.savefig("depth_distance.png")

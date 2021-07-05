@@ -12,6 +12,7 @@ import pytorch_lightning as pl
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
+from scipy.stats import gaussian_kde
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
@@ -172,10 +173,15 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
         "Pred vs True for the distance with S wave examples shown, \nRSME(both) = " + str(
             rsme) + ", RSME(no S wave)=" + str(rsme_p) +
         ", RSME(with S wave)=" + str(rsme_s), fontsize=8)
-    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-                alpha=0.5, label="Examples without a S-Wave")
-    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
-                alpha=0.3, label="Examples with a S-Wave")
+    xy = np.vstack([np.array(true) / 1000, np.array(mean) / 1000])
+    z = gaussian_kde(xy)(xy)
+    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, c=z, s=2, facecolors='none', edgecolors="b",
+                linewidth=0.3,
+                alpha=0.5, label="Examples without the S-Wave")
+    xy = np.vstack([np.array(true_s) / 1000, np.array(mean_s) / 1000])
+    z = gaussian_kde(xy)(xy)
+    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, c=z, marker="D", color="crimson",
+                alpha=0.3, label="Examples with S-Wave")
     axs.legend(loc=0)
     axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
     plt.axis('square')
@@ -341,9 +347,14 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan):
     #             alpha=0.3)
     # extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
     # axs.legend([ps, ss, extra], ["Examples without a S-Wave", 'Examples with a S-Wave', 'Time after P-Wave arrival: ' + str(timespan)])
-    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
+    xy = np.vstack([np.array(true) / 1000, np.array(mean) / 1000])
+    z = gaussian_kde(xy)(xy)
+    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, c=z, s=2, facecolors='none', edgecolors="b",
+                linewidth=0.3,
                 alpha=0.5, label="Examples without the S-Wave")
-    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
+    xy = np.vstack([np.array(true_s) / 1000, np.array(mean_s) / 1000])
+    z = gaussian_kde(xy)(xy)
+    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, c=z, marker="D", color="crimson",
                 alpha=0.3, label="Examples with S-Wave")
     axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
     axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
@@ -880,7 +891,7 @@ def predict(
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 # timespan_iteration(cp, chp, hp, [8])
-rsme_timespan(cp, chp, hp)
+predtrue_s_waves(cp, chp, hp)
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
