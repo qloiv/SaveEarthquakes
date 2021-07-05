@@ -132,8 +132,8 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
             learned = learned.cpu()
             variance = variance.cpu()
             sig = np.sqrt(variance)
-            r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0]
-            r_sigma = scaler.inverse_transform(sig.reshape(1, -1))[0]
+            r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0][0]
+            r_sigma = scaler.inverse_transform(sig.reshape(1, -1))[0][0]
 
             # check if the s pick already arrived
             if s and (s - p) * 100 < (seq_len - random_point):
@@ -173,14 +173,25 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
         "Pred vs True for the distance with S wave examples shown, \nRSME(both) = " + str(
             rsme) + ", RSME(no S wave)=" + str(rsme_p) +
         ", RSME(with S wave)=" + str(rsme_s), fontsize=8)
-    xy = np.vstack([np.array(true) / 1000, np.array(mean) / 1000])
+    x = np.array(true) / 1000
+    y = np.array(mean) / 1000
+    xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
-    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, c=z, s=2, facecolors='none', edgecolors="b",
-                linewidth=0.3,
-                alpha=0.5, label="Examples without the S-Wave")
-    xy = np.vstack([np.array(true_s) / 1000, np.array(mean_s) / 1000])
+    # Sort the points by density, so that the densest points are plotted last
+    idx = z.argsort()
+    cm = plt.cm.get_cmap('Oranges')
+    x, y, z = x[idx], y[idx], z[idx]
+    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, c=z, cmap=cm, s=2, marker="o",
+                alpha=0.3, label="Examples without the S-Wave")
+    x = np.array(true_s) / 1000
+    y = np.array(mean_s) / 1000
+    xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
-    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, c=z, marker="D", color="crimson",
+    idx = z.argsort()
+    x, y, z = x[idx], y[idx], z[idx]
+    cm = plt.cm.get_cmap('Blues')
+
+    axs.scatter(x, y, s=2, c=z, cmap=cm, marker="D",
                 alpha=0.3, label="Examples with S-Wave")
     axs.legend(loc=0)
     axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
