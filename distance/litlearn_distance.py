@@ -419,59 +419,61 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
 
     # iterate through catalogue
     timespan = np.linspace(0, 20, num=41)
-    for t in tqdm(timespan):
-        learn = torch.empty((1), device=device)
-        var = torch.empty((1), device=device)
-        for idx in range(0, len(test_catalog)):
-            event, station, distance, p, s = test_catalog.iloc[idx][
-                ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
-            ]
+    with torch.no_grad():
+        for t in tqdm(timespan):
+            learn = torch.empty((1), device=device)
+            var = torch.empty((1), device=device)
+            for idx in range(0, len(test_catalog)):
+                event, station, distance, p, s = test_catalog.iloc[idx][
+                    ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
+                ]
 
-            # load subsequent waveform
-            raw_waveform = np.array(h5data.get(event + "/" + station))
-            seq_len = 20 * 100  # *sampling rate 20 sec window
-            p_pick_array = 3000
-            random_point = int(seq_len - t * 100)
-            waveform = raw_waveform[
-                       :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
-                       ]
+                # load subsequent waveform
+                raw_waveform = np.array(h5data.get(event + "/" + station))
+                seq_len = 20 * 100  # *sampling rate 20 sec window
+                p_pick_array = 3000
+                random_point = int(seq_len - t * 100)
+                waveform = raw_waveform[
+                           :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+                           ]
 
-            # modify waveform for input
-            d0 = obspy_detrend(waveform[0])
-            d1 = obspy_detrend(waveform[1])
-            d2 = obspy_detrend(waveform[2])
+                # modify waveform for input
+                d0 = obspy_detrend(waveform[0])
+                d1 = obspy_detrend(waveform[1])
+                d2 = obspy_detrend(waveform[2])
 
-            f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
-            f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
-            f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+                f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+                f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+                f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
 
-            g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
-            g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
-            g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+                g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+                g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+                g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
 
-            waveform = np.stack((g0, g1, g2))
-            waveform, _ = normalize_stream(waveform)
+                waveform = np.stack((g0, g1, g2))
+                waveform, _ = normalize_stream(waveform)
 
-            # evaluate stream
-            station_stream = torch.from_numpy(waveform[None])
-            station_stream = station_stream.to(device)
-            outputs = model(station_stream)
-            learned = outputs[0][0]
-            variance = outputs[1][0]
+                # evaluate stream
+                station_stream = torch.from_numpy(waveform[None])
+                station_stream = station_stream.to(device)
+                outputs = model(station_stream)
+                learned = outputs[0][0]
+                variance = outputs[1][0]
 
-            learn = torch.cat((learn, learned), 0)
-            var = torch.cat((var, variance), 0)
+                learn = torch.cat((learn, learned), 0)
+                var = torch.cat((var, variance), 0)
 
-        learn = learn.cpu()
-        var = var.cpu()
+            learn = learn.cpu()
+            var = var.cpu()
 
-        learn = np.delete(learn, 0)
-        var = np.delete(var, 0)
-        sig = np.sqrt(var)
-        true = scaler.inverse_transform(learn.reshape(1, -1))[0]
-        mean = scaler.inverse_transform(sig.reshape(1, -1))[0]
-        rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False), decimals=2)
-        rsme.append(rsme_p)
+            learn = np.delete(learn, 0)
+            var = np.delete(var, 0)
+            sig = np.sqrt(var)
+            true = scaler.inverse_transform(learn.reshape(1, -1))[0]
+            mean = scaler.inverse_transform(sig.reshape(1, -1))[0]
+            rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False),
+                              decimals=2)
+            rsme.append(rsme_p)
 
     # plot rsme simple one
     # TODO I am not sure if this looks right??
