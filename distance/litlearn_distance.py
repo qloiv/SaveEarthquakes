@@ -749,6 +749,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_path", type=str)
     parser.add_argument("--checkpoint_path", type=str)
     parser.add_argument("--hparams_file", type=str)
+    parser.add_argument("--time", type=str)
     args = parser.parse_args()
     action = args.action
     if action == "test_one":
@@ -782,9 +783,10 @@ if __name__ == "__main__":
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
         )
-    if action == "":
-        predict(
+    if action == "timespan":
+        timespan_iteration(
             catalog_path=args.catalog_path,
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
+            timespan_array=args.time
         )
