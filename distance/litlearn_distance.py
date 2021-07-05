@@ -410,7 +410,6 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
 
     # list for storing rsme
     rsme = []
-    true, mean, sigma = [], [], []
 
     # timespan = 1
 
@@ -421,6 +420,8 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     # iterate through catalogue
     timespan = np.linspace(0, 20, num=41)
     for t in tqdm(timespan):
+        learn = torch.empty((1), device=device)
+        var = torch.empty((1), device=device)
         for idx in range(0, len(test_catalog)):
             event, station, distance, p, s = test_catalog.iloc[idx][
                 ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
@@ -458,20 +459,22 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
             learned = outputs[0][0]
             variance = outputs[1][0]
 
-            learned = learned.cpu()
-            variance = variance.cpu()
+            learn = torch.cat((learn, learned), 0)
+            var = torch.cat((var, variance), 0)
 
-            sig = np.sqrt(variance)
-            r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0]
-            r_sigma = scaler.inverse_transform(sig.reshape(1, -1))[0]
+        learn = learn.cpu()
+        var = var.cpu()
 
-            sigma.append(r_sigma)
-            mean.append(r_learned)
-            true.append(distance)
+        learn = np.delete(learn, 0)
+        var = np.delete(var, 0)
+        sig = np.sqrt(var)
+        true = scaler.inverse_transform(learn.reshape(1, -1))[0]
+        mean = scaler.inverse_transform(sig.reshape(1, -1))[0]
         rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False), decimals=2)
         rsme.append(rsme_p)
 
     # plot rsme simple one
+    # TODO I am not sure if this looks right??
     fig, axs = plt.subplots(1)
     axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
