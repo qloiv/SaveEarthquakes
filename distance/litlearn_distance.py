@@ -409,7 +409,6 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
     s_times = test_catalog["S_PICK"]
     p_times = test_catalog["P_PICK"]
-    # TODO add number of s arrivals for each time step
     split_key = "test_files"
     file_path = hdf5_path
     h5data = h5py.File(file_path, "r").get(split_key)
@@ -431,8 +430,7 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     scaler.fit(dist.reshape(-1, 1))
 
     # list for storing rsme
-    rsme = []
-
+    rsme_p, rsme_s, rsme = [], [], []
     # timespan = 1
 
     # preload filters
@@ -443,8 +441,10 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     timespan = np.linspace(0, 20, num=41)
     with torch.no_grad():
         for t in tqdm(timespan):
-            learn = torch.empty((1), device=device)
-            var = torch.empty((1), device=device)
+            learn = torch.empty(1, device=device)
+            var = torch.empty(1, device=device)
+            learn_s = torch.empty((1), device=device)
+            var_s = torch.empty((1), device=device)
             for idx in range(0, len(test_catalog)):
                 event, station, distance, p, s = test_catalog.iloc[idx][
                     ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
@@ -482,8 +482,14 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
                 learned = outputs[0][0]
                 variance = outputs[1][0]
 
-                learn = torch.cat((learn, learned), 0)
-                var = torch.cat((var, variance), 0)
+                # check if the s pick already arrived
+                if s and (s - p) * 100 < (seq_len - random_point):
+                    # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
+                    learn_s = torch.cat((learn_s, learned), 0)
+                    var_s = torch.cat((var_s, variance), 0)
+                else:
+                    learn = torch.cat((learn, learned), 0)
+                    var = torch.cat((var, variance), 0)
 
             learn = learn.cpu()
             var = var.cpu()
@@ -493,24 +499,48 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
             sig = np.sqrt(var)
             true = scaler.inverse_transform(learn.reshape(1, -1))[0]
             mean = scaler.inverse_transform(sig.reshape(1, -1))[0]
-            rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False),
-                              decimals=2)
-            rsme.append(rsme_p)
+            rsmep = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False),
+                             decimals=2)
+            rsme_p.append(rsmep)
 
+            learn_s = learn_s.cpu()
+            var_s = var_s.cpu()
+            if learn_s.shape != torch.Size([1]):  # no element was added during loop
+                learn_s = np.delete(learn_s, 0)
+                var_s = np.delete(var_s, 0)
+                sig_s = np.sqrt(var_s)
+                true_s = scaler.inverse_transform(learn_s.reshape(1, -1))[0]
+                mean_s = scaler.inverse_transform(sig_s.reshape(1, -1))[0]
+                rsmes = np.round(mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False),
+                                 decimals=2)
+                rsme_s.append(rsmes)
+            else:
+                mean_s = np.zeros((1))
+                true_s = np.zeros((1))
+                rsme_s.append(np.zeros((1)))
+            rsm = np.round(
+                mean_squared_error(np.append(true, true_s) / 1000, np.append(mean, mean_s) / 1000, squared=False),
+                decimals=2)
+            rsme.append(rsm)
     # plot rsme simple one
     # TODO I am not sure if this looks right??
     fig, axs = plt.subplots(1)
     axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
-        "RSME over time", fontsize=9)
+        "RSME over time", fontsize=10)
     # ps = axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
     #             alpha=0.5)
     # ss= axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
     #             alpha=0.3)
     # extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
     # axs.legend([ps, ss, extra], ["Examples without a S-Wave", 'Examples with a S-Wave', 'Time after P-Wave arrival: ' + str(timespan)])
+    axs.plot(timespan, np.array(rsme_p), linewidth=0.3,
+             label="RSME curve for not S-arrivals")
+    axs.plot(timespan, np.array(rsme_s), linewidth=0.3,
+             label="RSME curve for S-arrivals")
     axs.plot(timespan, np.array(rsme), linewidth=0.3,
-             label="RSME curve")
+             label="RSME curve for all")
+    axs.legend(fontsize=8)
     plt.xlabel("Time", fontsize=8)
     plt.ylabel("RSME", fontsize=8)
     fig.savefig("D2:RSME", dpi=600)
@@ -902,7 +932,7 @@ def predict(
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 # timespan_iteration(cp, chp, hp, [8])
-predtrue_s_waves(cp, chp, hp)
+rsme_timespan(cp, chp, hp)
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
