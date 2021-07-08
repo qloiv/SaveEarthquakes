@@ -178,11 +178,17 @@ def analyse(cp):
     fig7.suptitle("Distance to Depth Scatterplot")
     axes = fig7.add_subplot(111)
     # axes.bar(x, bars, width = 0.8,align = "edge", bottom=0.0, color=colours)
-    xy = np.vstack([distances / 1000, depth])
+    x = distances / 1000
+    y = depth
+    xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
-    plt.scatter(distances / 1000, depth, c=z, s=1, alpha=0.01)
-    plt.xlabel("Distance in km")
-    plt.ylabel("Depth in km")
+    # Sort the points by density, so that the densest points are plotted last
+    idx = z.argsort()
+    cm = plt.cm.get_cmap('plasma')
+    x, y, z = x[idx], y[idx], z[idx]
+    axes.scatter(x, y, c=z, cmap=cm, s=1, alpha=0.1)
+    plt.xlabel("Distance[km]", fontsize=8)
+    plt.ylabel("Depth[km]", fontsize=8)
     fig7.savefig("depth_distance.png")
 
     # fig3 = plt.figure()
