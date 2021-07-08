@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from scipy import signal
+from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset
 
 
@@ -57,6 +58,15 @@ class DetectionDataset(Dataset):
         self.h5data = None
         catalog = pd.read_csv(catalog_path)
         self.catalog = catalog[catalog["SPLIT"] == split]
+
+        train = catalog[catalog["SPLIT"] == "TRAIN"]
+        mag = np.array([0, 9])
+        assert max(np.array(train["MA"])) <= 9
+        assert min(np.array(train["MA"])) >= 0
+
+        self.scaler = MinMaxScaler()
+        self.scaler.fit(mag.reshape(-1, 1))
+
         self.sampling_rate = 100
         self.p_pick = 3000
         self.split = str.lower(split) + "_files"
@@ -73,7 +83,9 @@ class DetectionDataset(Dataset):
 
         # in all waveforms in the hdf5 catalogue, the pick was placed at index 3001
         event, station, magnitude = self.catalog.iloc[idx][["EVENT", "STATION", "MA"]]
-        label = np.float32(magnitude)
+        magnitude = self.scaler.transform(magnitude.reshape(1, -1))
+        label = np.float32(magnitude.squeeze())
+
         waveform = np.array(self.h5data.get(event + "/" + station))
         seq_len = self.time_before + self.time_after  # is 2000 if 20sec Window
         random_point = np.random.randint(seq_len)

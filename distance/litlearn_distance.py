@@ -186,10 +186,10 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('autumn')
+    cm = plt.cm.get_cmap('Oranges')
     x, y, z = x[idx], y[idx], z[idx]
     axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
-                alpha=0.3, label="Recordings without a S-Wave arrival")
+                alpha=0.1, label="Recordings without a S-Wave arrival")
 
     x = np.array(true_s) / 1000
     y = pred_s / 1000
@@ -197,10 +197,10 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     idx = z.argsort()
     x, y, z = x[idx], y[idx], z[idx]
-    cm = plt.cm.get_cmap('winter')
+    cm = plt.cm.get_cmap('Blues')
 
     axs.scatter(x, y, s=2, c=z, cmap=cm, marker="D",
-                alpha=0.3, label="Recordings in which there is a S-Wave arrival")
+                alpha=0.1, label="Recordings in which there is a S-Wave arrival")
     if timespan is not None:
         axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
     else:

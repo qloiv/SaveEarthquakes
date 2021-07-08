@@ -9,9 +9,12 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+import torch.nn.functional as F
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
+from scipy.stats import gaussian_kde
+from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from datasets_magnitude import normalize_stream, obspy_detrend
@@ -133,6 +136,339 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
 
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
     fig.savefig("predict plot")
+
+
+def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
+    for t in timespan_array:
+        predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
+
+
+def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
+    # load catalog
+    catalog = pd.read_csv(catalog_path)
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+
+    split_key = "test_files"
+    file_path = hdf5_path
+    h5data = h5py.File(file_path, "r").get(split_key)
+
+    # load model
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+
+    # load scaler
+    mag = np.array([0, 9])
+    # print(max(test_catalog["DIST"]))
+    assert max(test_catalog["MA"]) <= 9
+    assert min(test_catalog["MA"]) >= 0
+    scaler = MinMaxScaler()
+    scaler.fit(mag.reshape(-1, 1))
+
+    # load model
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+    model.to(device)
+
+    # list for storing mean and variance
+    learn = torch.zeros(1, device=device)
+    var = torch.zeros(1, device=device)
+    learn_s = torch.zeros(1, device=device)
+    var_s = torch.zeros(1, device=device)
+    true, true_s = [], []
+    # preload filters
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
+
+    # iterate through catalogue
+    with torch.no_grad():
+        for idx in tqdm(range(0, len(test_catalog))):
+            event, station, magnitude, p, s = test_catalog.iloc[idx][
+                ["EVENT", "STATION", "MA", "P_PICK", "S_PICK"]
+            ]
+
+            # load subsequent waveform
+            raw_waveform = np.array(h5data.get(event + "/" + station))
+            seq_len = 20 * 100  # *sampling rate 20 sec window
+            p_pick_array = 3000
+            if timespan is None:
+                random_point = np.random.randint(seq_len)
+            else:
+                random_point = int(seq_len - timespan * 100)
+            waveform = raw_waveform[
+                       :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+                       ]
+            # modify waveform for input
+            d0 = obspy_detrend(waveform[0])
+            d1 = obspy_detrend(waveform[1])
+            d2 = obspy_detrend(waveform[2])
+
+            f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+            f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+            f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+            g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+            g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+            g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+            waveform = np.stack((g0, g1, g2))
+            waveform, _ = normalize_stream(waveform)
+
+            # evaluate stream
+            station_stream = torch.from_numpy(waveform[None])
+            station_stream = station_stream.to(device)
+            outputs = model(station_stream)
+            learned = outputs[0][0]
+            variance = outputs[1][0]
+
+            # check if the s pick already arrived
+            if s and (s - p) * 100 < (seq_len - random_point):
+                # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
+                learn_s = torch.cat((learn_s, learned), 0)
+                # var_s = torch.cat((var_s, variance), 0)
+                true_s = true_s + [magnitude]
+
+            else:
+                learn = torch.cat((learn, learned), 0)
+                # var = torch.cat((var, variance), 0)
+                true = true + [magnitude]
+
+        learn = learn.cpu()
+        # var = var.cpu()
+
+        learn = np.delete(learn, 0)
+        # var = np.delete(var, 0)
+        # sig = np.sqrt(var)
+        pred = scaler.inverse_transform(learn.reshape(-1, 1)).squeeze()
+
+        learn_s = learn_s.cpu()
+        # var_s = var_s.cpu()
+
+        # if learn_s.shape != torch.Size([1]):  # no element was added during loop
+        learn_s = np.delete(learn_s, 0)
+        pred_s = scaler.inverse_transform(learn_s.reshape(-1, 1)).squeeze()
+    # if learn_s.shape == 0:
+    #    rsmes = np.round(mean_squared_error(np.array(true_s) / 1000, (pred_s) / 1000, squared=False),
+    #                     decimals=2)
+    # else:
+    #    pred_s = np.zeros((0))
+    #    rsmes = -1
+
+    # Plot with differentiation between S and no S Arrivals
+    fig, axs = plt.subplots(1)
+    axs.tick_params(axis='both', labelsize=8)
+    fig.suptitle(
+        "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival"
+        , fontsize=10)
+
+    x = np.array(true) / 1000
+    y = pred / 1000
+    xy = np.vstack([x, y])
+    z = gaussian_kde(xy)(xy)
+    # Sort the points by density, so that the densest points are plotted last
+    idx = z.argsort()
+    cm = plt.cm.get_cmap('Oranges')
+    x, y, z = x[idx], y[idx], z[idx]
+    axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
+                alpha=0.1, label="Recordings without a S-Wave arrival")
+
+    x = np.array(true_s) / 1000
+    y = pred_s / 1000
+    xy = np.vstack([x, y])
+    z = gaussian_kde(xy)(xy)
+    idx = z.argsort()
+    x, y, z = x[idx], y[idx], z[idx]
+    cm = plt.cm.get_cmap('Blues')
+
+    axs.scatter(x, y, s=2, c=z, cmap=cm, marker="D",
+                alpha=0.1, label="Recordings in which there is a S-Wave arrival")
+    if timespan is not None:
+        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
+    else:
+        axs.legend(loc=0)
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True magnitude", fontsize=8)
+    plt.ylabel("Predicted magnitude", fontsize=8)
+    if timespan is not None:
+        fig.savefig("Magnitude:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+    else:
+        fig.savefig("Magnitude:PredVSTrue", dpi=600)
+
+    # Plot without differentiation
+    fig, axs = plt.subplots(1)
+    axs.tick_params(axis='both', labelsize=8)
+    fig.suptitle(
+        "Predicted and true magnitude values")
+    # " \nRSME = " + str(
+    #    rsme), fontsize=10)
+
+    x = np.array(true + true_s) / 1000
+    y = np.append(pred, pred_s) / 1000
+    xy = np.vstack([x, y])
+    z = gaussian_kde(xy)(xy)
+    # Sort the points by density, so that the densest points are plotted last
+    idx = z.argsort()
+    cm = plt.cm.get_cmap('plasma')
+    x, y, z = x[idx], y[idx], z[idx]
+    axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
+                alpha=0.1, label="Test set recordings")
+
+    if timespan is not None:
+        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
+    else:
+        axs.legend(loc=0)
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
+    plt.axis('square')
+    plt.xlabel("True magnitude", fontsize=8)
+    plt.ylabel("Predicted magnitude", fontsize=8)
+    if timespan is not None:
+        fig.savefig("Magnitude:PredVSTrue_simple_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+    else:
+        fig.savefig("Magnitude:PredVSTrue_simple", dpi=600)
+
+
+def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
+    # load catalog
+    catalog = pd.read_csv(catalog_path)
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    s_times = test_catalog["S_PICK"]
+    p_times = test_catalog["P_PICK"]
+    split_key = "test_files"
+    file_path = hdf5_path
+    h5data = h5py.File(file_path, "r").get(split_key)
+
+    # iterate through catalogue
+    timespan = np.linspace(0, 20, num=41)
+
+    # load model
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+    model.to(device)
+
+    # load scaler
+    magmax = 600000
+    magmin = 1
+    # print(max(test_catalog["DIST"]))
+    assert max(test_catalog["MA"]) <= magmax
+    assert min(test_catalog["MA"]) >= magmin
+    # scaler = MinMaxScaler()
+    # scaler.fit(np.array([distmin,distmax]).reshape(-1, 1))
+
+    # list for storing rsme
+    rsme = torch.empty(len(timespan), device=device)
+    rsme_s = torch.empty(len(timespan), device=device)
+    rsme_p = torch.empty(len(timespan), device=device)
+    # variance_all = torch.empty(len(timespan), device=device)
+
+    # timespan = 1
+
+    # preload filters
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
+
+    with torch.no_grad():
+        for t in tqdm(timespan):
+            learn = torch.zeros(1, device=device)
+            # var = torch.empty(1, device=device)
+            learn_s = torch.zeros(1, device=device)
+            # var_s = torch.empty(1, device=device)
+            true_s = torch.zeros(1, device=device)
+            true = torch.zeros(1, device=device)
+            mag = np.array(test_catalog["MA"])
+            mag = [[m] for m in mag]
+            mag = torch.tensor(mag, device=device)
+            for idx in range(0, len(test_catalog)):
+                event, station, magnitude, p, s = test_catalog.iloc[idx][
+                    ["EVENT", "STATION", "MA", "P_PICK", "S_PICK"]
+                ]
+                # load subsequent waveform
+                raw_waveform = np.array(h5data.get(event + "/" + station))
+                seq_len = 20 * 100  # *sampling rate 20 sec window
+                p_pick_array = 3000
+                random_point = int(seq_len - t * 100)
+                waveform = raw_waveform[
+                           :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+                           ]
+
+                # modify waveform for input
+                d0 = obspy_detrend(waveform[0])
+                d1 = obspy_detrend(waveform[1])
+                d2 = obspy_detrend(waveform[2])
+
+                f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+                f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+                f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+                g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+                g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+                g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+                waveform = np.stack((g0, g1, g2))
+                waveform, _ = normalize_stream(waveform)
+
+                # evaluate stream
+                station_stream = torch.from_numpy(waveform[None])
+                station_stream = station_stream.to(device)
+                outputs = model(station_stream)
+                learned = outputs[0][0]
+                variance = outputs[1][0]
+
+                # check if the s pick already arrived
+                if s and (s - p) * 100 < (seq_len - random_point):
+                    # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
+                    learn_s = torch.cat((learn_s, learned))
+                    # var_s = torch.cat((var_s, variance))
+                    true_s = torch.cat((true_s, mag[idx]))
+                else:
+                    learn = torch.cat((learn, learned))
+                    # var = torch.cat((var, variance))
+                    true = torch.cat((true, mag[idx]))
+
+            # delete the dummy variable
+            learn_s = learn_s[learn_s != learn_s[0]]
+            # var_s = var_s[var_s != var_s[0]]
+            learn = learn[learn != learn[0]]
+            # var = var[var != var[0]]
+            true = true[true != true[0]]
+            true_s = true_s[true_s != true_s[0]]
+
+            # scale back to km
+            learn_scaled = torch.add(torch.mul(learn, magmax), magmin)
+            learn_s_scaled = torch.add(torch.mul(learn_s, magmax), magmin)
+            # variance_scaled = torch.add(torch.mul(var, 600000), 1)
+            # variance_s_scaled = torch.add(torch.mul(var_s, 600000), 1)
+
+            i = np.where(timespan == t)[0][0]
+            rsme_p[i] = torch.sqrt(F.mse_loss(learn_scaled, true))
+            rsme_s[i] = torch.sqrt(F.mse_loss(learn_s_scaled, true_s))
+            rsme[i] = torch.sqrt(F.mse_loss(torch.cat((learn_scaled, learn_s_scaled)), torch.cat((true, true_s))))
+            # variance_all[i]= torch.cat((variance_all,torch.cat((variance_scaled,variance_s_scaled))))
+
+    rsme = rsme.cpu()
+    rsme_p = rsme_p.cpu()
+    rsme_s = rsme_s.cpu()
+    fig, axs = plt.subplots(1)
+    axs.tick_params(axis='both', labelsize=8)
+    fig.suptitle(
+        "RSME after the P-arrival depending on S-arrivals", fontsize=10)
+    axs.plot(timespan, np.array(rsme_p) / 1000, linewidth=0.5,
+             label="Recordings without a S-Wave arrival", color="steelblue")
+    axs.plot(timespan, np.array(rsme_s) / 1000, linewidth=0.5,
+             label="Recordings in which there is a S-Wave arrival", color="crimson")
+    axs.plot(timespan, np.array(rsme) / 1000, linewidth=0.5,
+             label="All recordings", color="rebeccapurple")
+    axs.legend(fontsize=8, loc="best")
+    plt.xlabel("Time after P-Wave arrival[sec]", fontsize=8)
+    plt.ylabel("RSME", fontsize=8)
+    fig.savefig("Magnitude:RSME", dpi=600)
 
 
 learn(cp, hp, mp)
