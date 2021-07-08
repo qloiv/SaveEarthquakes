@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+import torch.nn.functional as F
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 from scipy.stats import gaussian_kde
-from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
@@ -53,7 +53,12 @@ def learn(catalog_path, hdf5_path, model_path):
     # torch.save(network.state_dict(), os.path.join(model_path, path))
 
 
-def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
+def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
+    for t in timespan_array:
+        predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
+
+
+def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
@@ -63,6 +68,20 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
     h5data = h5py.File(file_path, "r").get(split_key)
 
     # load model
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+
+    # load scaler
+    dist = np.array([1, 600000])
+    # print(max(test_catalog["DIST"]))
+    assert max(test_catalog["DIST"]) <= 600000
+    assert min(test_catalog["DIST"]) >= 1
+    scaler = MinMaxScaler()
+    scaler.fit(dist.reshape(-1, 1))
+
+    # load model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = LitNetwork.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
@@ -70,22 +89,12 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
     model.freeze()
     model.to(device)
 
-    # load scaler
-    dist = np.array([1, 600000])
-    print(max(test_catalog["DIST"]))
-    assert max(test_catalog["DIST"]) <= 600000
-    assert min(test_catalog["DIST"]) >= 1
-    scaler = MinMaxScaler()
-    scaler.fit(dist.reshape(-1, 1))
-
     # list for storing mean and variance
-    sigma = []
-    mean = []
-    true = []
-    true_s = []
-    sigma_s = []
-    mean_s = []
-
+    learn = torch.zeros(1, device=device)
+    var = torch.zeros(1, device=device)
+    learn_s = torch.zeros(1, device=device)
+    var_s = torch.zeros(1, device=device)
+    true, true_s = [], []
     # preload filters
     filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
@@ -101,11 +110,13 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
             raw_waveform = np.array(h5data.get(event + "/" + station))
             seq_len = 20 * 100  # *sampling rate 20 sec window
             p_pick_array = 3000
-            random_point = np.random.randint(seq_len)
+            if timespan is None:
+                random_point = np.random.randint(seq_len)
+            else:
+                random_point = int(seq_len - timespan * 100)
             waveform = raw_waveform[
                        :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
                        ]
-
             # modify waveform for input
             d0 = obspy_detrend(waveform[0])
             d1 = obspy_detrend(waveform[1])
@@ -129,278 +140,111 @@ def predtrue_s_waves(catalog_path, checkpoint_path, hdf5_path):
             learned = outputs[0][0]
             variance = outputs[1][0]
 
-            learned = learned.cpu()
-            variance = variance.cpu()
-            sig = np.sqrt(variance)
-            r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0][0]
-            r_sigma = scaler.inverse_transform(sig.reshape(1, -1))[0][0]
-
             # check if the s pick already arrived
             if s and (s - p) * 100 < (seq_len - random_point):
                 # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
-                sigma_s.append(r_sigma)
-                mean_s.append(r_learned)
-                true_s.append(distance)
+                learn_s = torch.cat((learn_s, learned), 0)
+                # var_s = torch.cat((var_s, variance), 0)
+                true_s = true_s + [distance]
+
             else:
-                sigma.append(r_sigma)
-                mean.append(r_learned)
-                true.append(distance)
+                learn = torch.cat((learn, learned), 0)
+                # var = torch.cat((var, variance), 0)
+                true = true + [distance]
 
-    # # plot Pred vs True simple one
-    # rsme = mean_squared_error(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, squared=False)
-    #
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance, RSME = " + str(rsme)
-    # )
-    # axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
-    #             linewidth=0.3, alpha=0.5)
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D:PredvsTrue_simple", dpi=600)
+        learn = learn.cpu()
+        # var = var.cpu()
 
-    # plot Pred vs True simple one
-    rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False), decimals=2)
-    rsme_s = np.round(mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False), decimals=2)
-    rsme = np.round(mean_squared_error(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, squared=False),
-                    decimals=2)
+        learn = np.delete(learn, 0)
+        # var = np.delete(var, 0)
+        # sig = np.sqrt(var)
+        pred = scaler.inverse_transform(learn.reshape(-1, 1)).squeeze()
 
+        learn_s = learn_s.cpu()
+        # var_s = var_s.cpu()
+
+        # if learn_s.shape != torch.Size([1]):  # no element was added during loop
+        learn_s = np.delete(learn_s, 0)
+        pred_s = scaler.inverse_transform(learn_s.reshape(-1, 1)).squeeze()
+    # if learn_s.shape == 0:
+    #    rsmes = np.round(mean_squared_error(np.array(true_s) / 1000, (pred_s) / 1000, squared=False),
+    #                     decimals=2)
+    # else:
+    #    pred_s = np.zeros((0))
+    #    rsmes = -1
+
+    # Plot with differentiation between S and no S Arrivals
     fig, axs = plt.subplots(1)
     axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
-        "Pred vs True for the distance with S wave examples shown, \nRSME(both) = " + str(
-            rsme) + ", RSME(no S wave)=" + str(rsme_p) +
-        ", RSME(with S wave)=" + str(rsme_s), fontsize=8)
+        "Predicted and true distance values, differentiating between recordings with and without a S-Wave arrival"
+        , fontsize=10)
+
     x = np.array(true) / 1000
-    y = np.array(mean) / 1000
+    y = pred / 1000
     xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('Oranges')
+    cm = plt.cm.get_cmap('autumn')
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, c=z, cmap=cm, s=2, marker="o",
-                alpha=0.3, label="Examples without the S-Wave")
+    axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
+                alpha=0.3, label="Recordings without a S-Wave arrival")
+
     x = np.array(true_s) / 1000
-    y = np.array(mean_s) / 1000
+    y = pred_s / 1000
     xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
     idx = z.argsort()
     x, y, z = x[idx], y[idx], z[idx]
-    cm = plt.cm.get_cmap('Blues')
+    cm = plt.cm.get_cmap('winter')
 
     axs.scatter(x, y, s=2, c=z, cmap=cm, marker="D",
-                alpha=0.3, label="Examples with S-Wave")
-    axs.legend(loc=0)
+                alpha=0.3, label="Recordings in which there is a S-Wave arrival")
+    if timespan is not None:
+        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
+    else:
+        axs.legend(loc=0)
     axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
     plt.axis('square')
-    plt.xlabel("True distance in km", fontsize=8)
-    plt.ylabel("Predicted distance in km", fontsize=8)
-    fig.savefig("D:PredvsTrue", dpi=600)
-
-    # # plot Pred vs True simple one
-    # rsme_p = mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False)
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance without S Wave examples, RSME = " + str(rsme_p)
-    # )
-    # axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    #
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D:PredvsTrue without S Waves", dpi=600)
-    #
-    # # plot Pred vs True simple one
-    # rsme_s = mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False)
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance with S Wave examples, RSME=" + str(rsme_s)
-    # )
-    # axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    #
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D:PredvsTrue with S Waves", dpi=600)
-
-
-def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
-    for t in timespan_array:
-        predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
-
-
-def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan):
-    # load catalog
-    catalog = pd.read_csv(catalog_path)
-    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-
-    split_key = "test_files"
-    file_path = hdf5_path
-    h5data = h5py.File(file_path, "r").get(split_key)
-
-    # load model
-    model = LitNetwork.load_from_checkpoint(
-        checkpoint_path=checkpoint_path,
-    )
-    model.freeze()
-
-    # load scaler
-    dist = np.array([1, 600000])
-    print(max(test_catalog["DIST"]))
-    assert max(test_catalog["DIST"]) <= 600000
-    assert min(test_catalog["DIST"]) >= 1
-    scaler = MinMaxScaler()
-    scaler.fit(dist.reshape(-1, 1))
-
-    # list for storing mean and variance
-    sigma = []
-    mean = []
-    true = []
-    sigma_s = []
-    mean_s = []
-    true_s = []
-
-    # timespan = 1
-
-    # preload filters
-    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
-    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
-
-    # iterate through catalogue
-    for idx in tqdm(range(0, len(test_catalog))):
-        event, station, distance, p, s = test_catalog.iloc[idx][
-            ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
-        ]
-
-        # load subsequent waveform
-        raw_waveform = np.array(h5data.get(event + "/" + station))
-        seq_len = 20 * 100  # *sampling rate 20 sec window
-        p_pick_array = 3000
-        random_point = int(seq_len - timespan * 100)
-        waveform = raw_waveform[
-                   :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
-                   ]
-
-        # modify waveform for input
-        d0 = obspy_detrend(waveform[0])
-        d1 = obspy_detrend(waveform[1])
-        d2 = obspy_detrend(waveform[2])
-
-        f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
-        f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
-        f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
-
-        g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
-        g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
-        g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
-
-        waveform = np.stack((g0, g1, g2))
-        waveform, _ = normalize_stream(waveform)
-
-        # evaluate stream
-        station_stream = torch.from_numpy(waveform[None])
-        outputs = model(station_stream)
-        learned = outputs[0][0]
-        variance = outputs[1][0]
-
-        sig = np.sqrt(variance)
-        r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0]
-        r_sigma = scaler.inverse_transform(sig.reshape(1, -1))[0]
-
-        # check if the s pick already arrived
-        if s and (s - p) * 100 < (seq_len - random_point):
-            # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
-            sigma_s.append(r_sigma)
-            mean_s.append(r_learned)
-            true_s.append(distance)
-        else:
-            sigma.append(r_sigma)
-            mean.append(r_learned)
-            true.append(distance)
-
-    # plot Pred vs True simple one
-    rsme = np.round(mean_squared_error(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, squared=False),
-                    decimals=2)
-    rsme_p = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False), decimals=2)
-    if len(true_s) == 0:
-        rsme_s = -1
+    plt.xlabel("True distance[km]", fontsize=8)
+    plt.ylabel("Predicted distance[km]", fontsize=8)
+    if timespan is not None:
+        fig.savefig("Distance:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600)
     else:
-        rsme_s = np.round(mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False),
-                          decimals=2)
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance, timespan = " + str(timespan) + "sec\n RSME(all) = " + str(rsme) +
-    #     " RSME(S waves) = " + str(rsme_s) + " RSME(no S wave)= "+ str(rsme_p))
-    # axs.scatter(np.array(true + true_s) / 1000, np.array(mean + mean_s) / 1000, s=2, facecolors='none', edgecolors="b",
-    #             linewidth=0.3, alpha=0.5)
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D2:PredvsTrue_simple_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+        fig.savefig("Distance:PredVSTrue", dpi=600)
 
-    # plot Pred vs True simple one
+    # Plot without differentiation
     fig, axs = plt.subplots(1)
     axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
-        "Prediction vs True for the distance \n RSME(all) = " + str(rsme) +
-        ", RSME(S waves) = " + str(rsme_s) + ", RSME(no S wave)= " + str(rsme_p), fontsize=9)
-    # ps = axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    # ss= axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
-    #             alpha=0.3)
-    # extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
-    # axs.legend([ps, ss, extra], ["Examples without a S-Wave", 'Examples with a S-Wave', 'Time after P-Wave arrival: ' + str(timespan)])
-    xy = np.vstack([np.array(true) / 1000, np.array(mean) / 1000])
+        "Predicted and true distance values")
+    # " \nRSME = " + str(
+    #    rsme), fontsize=10)
+
+    x = np.array(true + true_s) / 1000
+    y = np.append(pred, pred_s) / 1000
+    xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
-    axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, c=z, s=2, facecolors='none', edgecolors="b",
-                linewidth=0.3,
-                alpha=0.5, label="Examples without the S-Wave")
-    xy = np.vstack([np.array(true_s) / 1000, np.array(mean_s) / 1000])
-    z = gaussian_kde(xy)(xy)
-    axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, c=z, marker="D", color="crimson",
-                alpha=0.3, label="Examples with S-Wave")
-    axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
+    # Sort the points by density, so that the densest points are plotted last
+    idx = z.argsort()
+    cm = plt.cm.get_cmap('plasma')
+    x, y, z = x[idx], y[idx], z[idx]
+    axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
+                alpha=0.3, label="Test set recordings")
+
+    if timespan is not None:
+        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
+    else:
+        axs.legend(loc=0)
     axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
     plt.axis('square')
-    plt.xlabel("True distance in km", fontsize=8)
-    plt.ylabel("Predicted distance in km", fontsize=8)
-    fig.savefig("D2:PredvsTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600)
-    #
-    # # plot Pred vs True simple one
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance without S Wave examples, timespan = " + str(timespan) + "sec"
-    # )
-    # axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    #
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D2:PredvsTrue without S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
-    #
-    # # plot Pred vs True simple one
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance with S Wave examples, timespan = " + str(timespan) + "sec"
-    # )
-    # axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    #
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D2:PredvsTrue with S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+    plt.xlabel("True distance[km]", fontsize=8)
+    plt.ylabel("Predicted distance[km]", fontsize=8)
+    if timespan is not None:
+        fig.savefig("Distance:PredVSTrue_simple_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+    else:
+        fig.savefig("Distance:PredVSTrue_simple", dpi=600)
 
 
 def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
@@ -413,6 +257,9 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     file_path = hdf5_path
     h5data = h5py.File(file_path, "r").get(split_key)
 
+    # iterate through catalogue
+    timespan = np.linspace(0, 20, num=41)
+
     # load model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = LitNetwork.load_from_checkpoint(
@@ -422,34 +269,41 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     model.to(device)
 
     # load scaler
-    dist = np.array([1, 600000])
-    print(max(test_catalog["DIST"]))
-    assert max(test_catalog["DIST"]) <= 600000
-    assert min(test_catalog["DIST"]) >= 1
-    scaler = MinMaxScaler()
-    scaler.fit(dist.reshape(-1, 1))
+    distmax = 600000
+    distmin = 1
+    # print(max(test_catalog["DIST"]))
+    assert max(test_catalog["DIST"]) <= distmax
+    assert min(test_catalog["DIST"]) >= distmin
+    # scaler = MinMaxScaler()
+    # scaler.fit(np.array([distmin,distmax]).reshape(-1, 1))
 
     # list for storing rsme
-    rsme_p, rsme_s, rsme = [], [], []
+    rsme = torch.empty(len(timespan), device=device)
+    rsme_s = torch.empty(len(timespan), device=device)
+    rsme_p = torch.empty(len(timespan), device=device)
+    # variance_all = torch.empty(len(timespan), device=device)
+
     # timespan = 1
 
     # preload filters
     filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
 
-    # iterate through catalogue
-    timespan = np.linspace(0, 20, num=41)
     with torch.no_grad():
         for t in tqdm(timespan):
-            learn = torch.empty(1, device=device)
-            var = torch.empty(1, device=device)
-            learn_s = torch.empty((1), device=device)
-            var_s = torch.empty((1), device=device)
+            learn = torch.zeros(1, device=device)
+            # var = torch.empty(1, device=device)
+            learn_s = torch.zeros(1, device=device)
+            # var_s = torch.empty(1, device=device)
+            true_s = torch.zeros(1, device=device)
+            true = torch.zeros(1, device=device)
+            dist = np.array(test_catalog["DIST"])
+            dist = [[d] for d in dist]
+            dist = torch.tensor(dist, device=device)
             for idx in range(0, len(test_catalog)):
                 event, station, distance, p, s = test_catalog.iloc[idx][
                     ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
                 ]
-
                 # load subsequent waveform
                 raw_waveform = np.array(h5data.get(event + "/" + station))
                 seq_len = 20 * 100  # *sampling rate 20 sec window
@@ -485,93 +339,51 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
                 # check if the s pick already arrived
                 if s and (s - p) * 100 < (seq_len - random_point):
                     # print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
-                    learn_s = torch.cat((learn_s, learned), 0)
-                    var_s = torch.cat((var_s, variance), 0)
+                    learn_s = torch.cat((learn_s, learned))
+                    # var_s = torch.cat((var_s, variance))
+                    true_s = torch.cat((true_s, dist[idx]))
                 else:
-                    learn = torch.cat((learn, learned), 0)
-                    var = torch.cat((var, variance), 0)
+                    learn = torch.cat((learn, learned))
+                    # var = torch.cat((var, variance))
+                    true = torch.cat((true, dist[idx]))
 
-            learn = learn.cpu()
-            var = var.cpu()
+            # delete the dummy variable
+            learn_s = learn_s[learn_s != learn_s[0]]
+            # var_s = var_s[var_s != var_s[0]]
+            learn = learn[learn != learn[0]]
+            # var = var[var != var[0]]
+            true = true[true != true[0]]
+            true_s = true_s[true_s != true_s[0]]
 
-            learn = np.delete(learn, 0)
-            var = np.delete(var, 0)
-            sig = np.sqrt(var)
-            true = scaler.inverse_transform(learn.reshape(1, -1))[0]
-            mean = scaler.inverse_transform(sig.reshape(1, -1))[0]
-            rsmep = np.round(mean_squared_error(np.array(true) / 1000, np.array(mean) / 1000, squared=False),
-                             decimals=2)
-            rsme_p.append(rsmep)
+            # scale back to km
+            learn_scaled = torch.add(torch.mul(learn, distmax), distmin)
+            learn_s_scaled = torch.add(torch.mul(learn_s, distmax), distmin)
+            # variance_scaled = torch.add(torch.mul(var, 600000), 1)
+            # variance_s_scaled = torch.add(torch.mul(var_s, 600000), 1)
 
-            learn_s = learn_s.cpu()
-            var_s = var_s.cpu()
-            if learn_s.shape != torch.Size([1]):  # no element was added during loop
-                learn_s = np.delete(learn_s, 0)
-                var_s = np.delete(var_s, 0)
-                sig_s = np.sqrt(var_s)
-                true_s = scaler.inverse_transform(learn_s.reshape(1, -1))[0]
-                mean_s = scaler.inverse_transform(sig_s.reshape(1, -1))[0]
-                rsmes = np.round(mean_squared_error(np.array(true_s) / 1000, np.array(mean_s) / 1000, squared=False),
-                                 decimals=2)
-                rsme_s.append(rsmes)
-            else:
-                mean_s = np.zeros((1))
-                true_s = np.zeros((1))
-                rsme_s.append(np.zeros((1)))
-            rsm = np.round(
-                mean_squared_error(np.append(true, true_s) / 1000, np.append(mean, mean_s) / 1000, squared=False),
-                decimals=2)
-            rsme.append(rsm)
-    # plot rsme simple one
-    # TODO I am not sure if this looks right??
+            i = np.where(timespan == t)[0][0]
+            rsme_p[i] = torch.sqrt(F.mse_loss(learn_scaled, true))
+            rsme_s[i] = torch.sqrt(F.mse_loss(learn_s_scaled, true_s))
+            rsme[i] = torch.sqrt(F.mse_loss(torch.cat((learn_scaled, learn_s_scaled)), torch.cat((true, true_s))))
+            # variance_all[i]= torch.cat((variance_all,torch.cat((variance_scaled,variance_s_scaled))))
+
+    rsme = rsme.cpu()
+    rsme_p = rsme_p.cpu()
+    rsme_s = rsme_s.cpu()
     fig, axs = plt.subplots(1)
     axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
-        "RSME over time", fontsize=10)
-    # ps = axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    # ss= axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, marker="D", color="crimson",
-    #             alpha=0.3)
-    # extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
-    # axs.legend([ps, ss, extra], ["Examples without a S-Wave", 'Examples with a S-Wave', 'Time after P-Wave arrival: ' + str(timespan)])
-    axs.plot(timespan, np.array(rsme_p), linewidth=0.3,
-             label="RSME curve for not S-arrivals")
-    axs.plot(timespan, np.array(rsme_s), linewidth=0.3,
-             label="RSME curve for S-arrivals")
-    axs.plot(timespan, np.array(rsme), linewidth=0.3,
-             label="RSME curve for all")
-    axs.legend(fontsize=8)
-    plt.xlabel("Time", fontsize=8)
-    plt.ylabel("RSME", fontsize=8)
-    fig.savefig("D2:RSME", dpi=600)
-    #
-    # # plot Pred vs True simple one
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance without S Wave examples, timespan = " + str(timespan) + "sec"
-    # )
-    # axs.scatter(np.array(true) / 1000, np.array(mean) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    #
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D2:PredvsTrue without S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
-    #
-    # # plot Pred vs True simple one
-    # fig, axs = plt.subplots(1)
-    # fig.suptitle(
-    #     "Pred vs True for the distance with S Wave examples, timespan = " + str(timespan) + "sec"
-    # )
-    # axs.scatter(np.array(true_s) / 1000, np.array(mean_s) / 1000, s=2, facecolors='none', edgecolors="b", linewidth=0.3,
-    #             alpha=0.5)
-    #
-    # axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    # plt.axis('square')
-    # plt.xlabel("True distance in km")
-    # plt.ylabel("Predicted distance in km")
-    # fig.savefig("D2:PredvsTrue with S Waves_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+        "RSME after the P-arrival depending on S-arrivals", fontsize=10)
+    axs.plot(timespan, np.array(rsme_p) / 1000, linewidth=0.5,
+             label="Recordings without a S-Wave arrival", color="royalblue")
+    axs.plot(timespan, np.array(rsme_s) / 1000, linewidth=0.5,
+             label="Recordings in which there is a S-Wave arrival", color="crimson")
+    axs.plot(timespan, np.array(rsme) / 1000, linewidth=0.5,
+             label="All recordings", color="mediumseagreen")
+    axs.legend(fontsize=8, loc="best")
+    plt.xlabel("Time after P-Wave arrival[sec]", fontsize=8)
+    plt.ylabel("RSME[km]", fontsize=8)
+    fig.savefig("Distance:RSME", dpi=600)
 
 
 def test_one(catalog_path, checkpoint_path, hdf5_path):
@@ -931,8 +743,9 @@ def predict(
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
-# timespan_iteration(cp, chp, hp, [8])
-rsme_timespan(cp, chp, hp)
+# rsme_timespan(cp, chp, hp)
+# predtrue_s_waves(cp, chp, hp)
+predtrue_timespan(cp, chp, hp, 20)
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -970,12 +783,7 @@ if __name__ == "__main__":
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
         )
-    if action == "predtrue":
-        predtrue_s_waves(
-            catalog_path=args.catalog_path,
-            hdf5_path=args.hdf5_path,
-            checkpoint_path=args.checkpoint_path,
-        )
+
     if action == "rsme":
         rsme_timespan(
             catalog_path=args.catalog_path,
