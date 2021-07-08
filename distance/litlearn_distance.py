@@ -177,7 +177,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     fig, axs = plt.subplots(1)
     axs.tick_params(axis='both', labelsize=8)
     fig.suptitle(
-        "Predicted and true distance values, differentiating between recordings with and without a S-Wave arrival"
+        "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival"
         , fontsize=10)
 
     x = np.array(true) / 1000
@@ -375,11 +375,11 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     fig.suptitle(
         "RSME after the P-arrival depending on S-arrivals", fontsize=10)
     axs.plot(timespan, np.array(rsme_p) / 1000, linewidth=0.5,
-             label="Recordings without a S-Wave arrival", color="royalblue")
+             label="Recordings without a S-Wave arrival", color="steelblue")
     axs.plot(timespan, np.array(rsme_s) / 1000, linewidth=0.5,
              label="Recordings in which there is a S-Wave arrival", color="crimson")
     axs.plot(timespan, np.array(rsme) / 1000, linewidth=0.5,
-             label="All recordings", color="mediumseagreen")
+             label="All recordings", color="rebeccapurple")
     axs.legend(fontsize=8, loc="best")
     plt.xlabel("Time after P-Wave arrival[sec]", fontsize=8)
     plt.ylabel("RSME[km]", fontsize=8)
@@ -743,8 +743,7 @@ def predict(
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
-# rsme_timespan(cp, chp, hp)
-# predtrue_s_waves(cp, chp, hp)
+rsme_timespan(cp, chp, hp)
 predtrue_timespan(cp, chp, hp, 20)
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
