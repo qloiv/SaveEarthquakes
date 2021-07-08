@@ -186,10 +186,11 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('Oranges')
+    cm = plt.cm.get_cmap('winter')
     x, y, z = x[idx], y[idx], z[idx]
     axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
-                alpha=0.1, label="Recordings without a S-Wave arrival")
+                alpha=0.05, label="Recordings without a S-Wave arrival")
+
 
     x = np.array(true_s) / 1000
     y = pred_s / 1000
@@ -197,10 +198,11 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     idx = z.argsort()
     x, y, z = x[idx], y[idx], z[idx]
-    cm = plt.cm.get_cmap('Blues')
+
+    cm = plt.cm.get_cmap('spring')
 
     axs.scatter(x, y, s=2, c=z, cmap=cm, marker="D",
-                alpha=0.1, label="Recordings in which there is a S-Wave arrival")
+                alpha=0.05, label="Recordings in which there is a S-Wave arrival")
     if timespan is not None:
         axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
     else:
@@ -231,7 +233,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     cm = plt.cm.get_cmap('plasma')
     x, y, z = x[idx], y[idx], z[idx]
     axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
-                alpha=0.3, label="Test set recordings")
+                alpha=0.05, label="Test set recordings")
 
     if timespan is not None:
         axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
@@ -728,7 +730,7 @@ def predict(
     # axs[4].plot(t,real_output-real_sig, color = "green", alpha = 0.3)
     axs[1].fill_between(
         t, real_output, real_output + real_sig, alpha=0.3, color="green"
-    )
+    )-
     axs[1].fill_between(
         t, real_output, real_output - real_sig, alpha=0.3, color="green"
     )
@@ -743,8 +745,14 @@ def predict(
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
+<<<<<<< HEAD
 rsme_timespan(cp, chp, hp)
 predtrue_timespan(cp, chp, hp, 20)
+=======
+# rsme_timespan(cp, chp, hp)
+# predtrue_s_waves(cp, chp, hp)
+#predtrue_timespan(cp, chp, hp, 20)
+>>>>>>> Change plot variables a little
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -782,7 +790,12 @@ if __name__ == "__main__":
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
         )
-
+    if action == "predtrue":
+        predtrue_timespan(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+        )
     if action == "rsme":
         rsme_timespan(
             catalog_path=args.catalog_path,

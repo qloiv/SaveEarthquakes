@@ -214,7 +214,7 @@ def analyse(cp):
 # plt.show()
 
 
-analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
+#analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
