@@ -76,12 +76,16 @@ def analyse(cp):
     p_picks = catalog["P_PICK"]
     diff = np.array(s_picks - p_picks)
     diff.sort()
-    t = np.linspace(start = 0, stop = 1, num = len(diff))
-     
+    t = np.linspace(start=0, stop=1, num=len(diff))
+
     fig_sp = plt.figure()
     axes = fig_sp.add_subplot(111)
-    fig_sp.suptitle("Time between P-Pick and S-Pick. Up to " + str(np.round(np.sum(diff <= 20)/len(diff), decimals = 2)) + "% of the examples\n(from all train, test or dev sets) may include the S-Wave")
-    plt.scatter(diff,t, s = 0.5)
+    fig_sp.suptitle(
+        "Time between P-Pick and S-Pick. Up to "
+        + str(np.round(np.sum(diff <= 20) / len(diff), decimals=2))
+        + "% of the examples\n(from all train, test or dev sets) may include the S-Wave"
+    )
+    plt.scatter(diff, t, s=0.5)
     axes.axvline(20, color="black", linestyle="dashed", linewidth=0.5)
     plt.xlabel("P to S-wave time in seconds")
     plt.ylabel("Fraction of Examples")
@@ -184,12 +188,12 @@ def analyse(cp):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('plasma')
+    cm = plt.cm.get_cmap("plasma")
     x, y, z = x[idx], y[idx], z[idx]
     axes.scatter(x, y, c=z, cmap=cm, s=1, alpha=0.05)
     plt.xlabel("Distance[km]", fontsize=8)
     plt.ylabel("Depth[km]", fontsize=8)
-    fig7.savefig("depth_distance.png",dpi=600)
+    fig7.savefig("depth_distance.png", dpi=600)
 
     # fig3 = plt.figure()
     # axes1 = fig3.add_subplot(111)
@@ -214,7 +218,7 @@ def analyse(cp):
 # plt.show()
 
 
-#analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
+# analyse(cp="/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)

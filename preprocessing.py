@@ -51,7 +51,14 @@ hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 inv_path = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 
 
-def preprocess(catalog_path, waveform_path, waveform_path_add, new_catalog_path, hdf5_path, inventory):
+def preprocess(
+        catalog_path,
+        waveform_path,
+        waveform_path_add,
+        new_catalog_path,
+        hdf5_path,
+        inventory,
+):
     # os.remove(csv_path)
     if os.path.exists(
             hdf5_path
@@ -114,8 +121,12 @@ def preprocess(catalog_path, waveform_path, waveform_path_add, new_catalog_path,
         path_add = os.path.join(waveform_path_add, f"{event}.mseed")
         # print(path_full)
         # print(path_add)
-        if os.path.exists(path_full) and os.path.getsize(path_full) > 0 and os.path.exists(
-                path_add) and os.path.getsize(path_add) > 0:
+        if (
+                os.path.exists(path_full)
+                and os.path.getsize(path_full) > 0
+                and os.path.exists(path_add)
+                and os.path.getsize(path_add) > 0
+        ):
             waveform = obspy.read(path_full) + obspy.read(path_add)
         elif os.path.exists(path_full) and os.path.getsize(path_full) > 0:
             waveform = obspy.read(path_full)

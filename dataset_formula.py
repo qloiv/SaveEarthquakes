@@ -7,6 +7,7 @@ import pandas as pd
 from obspy import UTCDateTime
 from tqdm import tqdm
 
+
 def obspy_detrend(data):
     # based on obspys detrend ("simple") function
     if not np.issubdtype(data.dtype, np.floating):
@@ -34,24 +35,25 @@ def normalize_stream(stream, global_max=False):
     return stream, stream_max
 
 
-#cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
-#wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-#hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
-#mp = "/home/viola/WS2021/Code/Models"
-#chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
-#hf = "/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",
-#ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
+# cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
+# wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+# hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
+# mp = "/home/viola/WS2021/Code/Models"
+# chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
+# hf = "/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",
+# ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 cp = "../new_catalogue_sensitivity.csv"
-wp= "../../data/earthquake/waveforms_long_full"
+wp = "../../data/earthquake/waveforms_long_full"
 wp2 = "../../data/earthquake/waveforms_long_additional"
 ip = "../inventory.xml"
+
 
 def formulate(x, train_catalog):
     # load train catalog
     catalog_path = cp
-    #hdf5_path = hp
+    # hdf5_path = hp
     waveform_path = wp
-    waveform_path_add=wp2
+    waveform_path_add = wp2
     inv_path = ip
 
     #    split_key = "train_files"
@@ -63,28 +65,30 @@ def formulate(x, train_catalog):
     # compute peak displacement
     # load catalog with random test event
 
-    event, station, p_pick,distance, magnitude = train_catalog[["EVENT", "STATION", "P_PICK", "DIST","MA"]]
-        #print(idx)
-        # load hdf5 waveform
-        # raw_waveform = np.array(h5data.get(event + "/" + station))
-        #  seq_len = 4 * 100  # 4seconds *sampling rate
-        # p_pick_array = 3000  # ist bei 3000 weil obspy null indiziert arbeitet, also die Startzeit beginnt bei array 0
+    event, station, p_pick, distance, magnitude = train_catalog[
+        ["EVENT", "STATION", "P_PICK", "DIST", "MA"]
+    ]
+    # print(idx)
+    # load hdf5 waveform
+    # raw_waveform = np.array(h5data.get(event + "/" + station))
+    #  seq_len = 4 * 100  # 4seconds *sampling rate
+    # p_pick_array = 3000  # ist bei 3000 weil obspy null indiziert arbeitet, also die Startzeit beginnt bei array 0
 
-        # load obpsy waveforms
+    # load obpsy waveforms
     if os.path.getsize(os.path.join(waveform_path_add, f"{event}.mseed")) > 0:
-            o_raw_waveform = obspy.read(os.path.join(waveform_path, f"{event}.mseed")) + obspy.read(os.path.join(waveform_path_add, f"{event}.mseed"))
+        o_raw_waveform = obspy.read(
+            os.path.join(waveform_path, f"{event}.mseed")
+        ) + obspy.read(os.path.join(waveform_path_add, f"{event}.mseed"))
     else:
-            o_raw_waveform = obspy.read(os.path.join(waveform_path, f"{event}.mseed"))
-
-
+        o_raw_waveform = obspy.read(os.path.join(waveform_path, f"{event}.mseed"))
 
     o_waveform = o_raw_waveform.select(station=station, channel="HHZ")
     o_station_stream = o_waveform.slice(
-            starttime=UTCDateTime(p_pick),  #
-            endtime=UTCDateTime(p_pick) + 3.99,
+        starttime=UTCDateTime(p_pick),  #
+        endtime=UTCDateTime(p_pick) + 3.99,
     )  # -0.01 deletes the last item, therefore enforcing array indexing
 
-        # load inventory
+    # load inventory
     inv = obspy.read_inventory(inv_path)
     inv_selection = inv.select(station=station, channel="HHZ")
 
@@ -93,11 +97,10 @@ def formulate(x, train_catalog):
     disp_w30 = new_stream_w30.remove_response(
         inventory=inv_selection, pre_filt=None, output="DISP", water_level=30
     )
-        # disp_w30.plot()
-    m = disp_w30.max()[0]  # already returns absolute maximum amplitude
-    #print(m*100)
-    return (m*100,distance,magnitude)
-
+    # disp_w30.plot()
+    m = np.max(np.abs(disp_w30))  # already returns absolute maximum amplitude
+    # print(m*100)
+    return (m * 100, distance, magnitude)
 
 
 pool = Pool(35)
@@ -105,7 +108,10 @@ catalog_path = "../new_catalogue_sensitivity.csv"
 catalog = pd.read_csv(catalog_path)
 train_catalog = catalog[catalog["SPLIT"] == "TRAIN"]
 len_train = len(train_catalog)
-results = [pool.apply_async(formulate, args=(x,train_catalog.iloc[x])) for x in tqdm(np.arange(0, len_train))]
+results = [
+    pool.apply_async(formulate, args=(x, train_catalog.iloc[x]))
+    for x in tqdm(np.arange(0, len_train))
+]
 output = [p.get() for p in tqdm(results)]
-np.save("/project/SaveEarthquakes/output.npy",output)
+np.save("/project/SaveEarthquakes/output.npy", output)
 print(output)

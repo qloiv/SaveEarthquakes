@@ -26,7 +26,7 @@ wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
 hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 mp = "/home/viola/WS2021/Code/Models"
 chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
-hf = "/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",
+hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
 
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
@@ -82,7 +82,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     scaler.fit(dist.reshape(-1, 1))
 
     # load model
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = LitNetwork.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
     )
@@ -175,10 +175,11 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
 
     # Plot with differentiation between S and no S Arrivals
     fig, axs = plt.subplots(1)
-    axs.tick_params(axis='both', labelsize=8)
+    axs.tick_params(axis="both", labelsize=8)
     fig.suptitle(
-        "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival"
-        , fontsize=10)
+        "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival",
+        fontsize=10,
+    )
 
     x = np.array(true) / 1000
     y = pred / 1000
@@ -186,11 +187,19 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('autumn')
+    cm = plt.cm.get_cmap("autumn")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(x, y, c=z, cmap=cm, marker="D",s = 0.3,alpha = 0.3,lw = 0,
-                label="Recordings without a S-Wave arrival")
-
+    axs.scatter(
+        x,
+        y,
+        c=z,
+        cmap=cm,
+        marker="D",
+        s=0.3,
+        alpha=0.3,
+        lw=0,
+        label="Recordings without a S-Wave arrival",
+    )
 
     x = np.array(true_s) / 1000
     y = pred_s / 1000
@@ -199,28 +208,45 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     idx = z.argsort()
     x, y, z = x[idx], y[idx], z[idx]
 
-    cm = plt.cm.get_cmap('winter')
+    cm = plt.cm.get_cmap("winter")
 
-    axs.scatter(x, y,  c=z, cmap=cm, marker="s", s= 0.3,alpha = 0.3,lw = 0,
-                 label="Recordings in which there is a S-Wave arrival")
+    axs.scatter(
+        x,
+        y,
+        c=z,
+        cmap=cm,
+        marker="s",
+        s=0.3,
+        alpha=0.3,
+        lw=0,
+        label="Recordings in which there is a S-Wave arrival",
+    )
     if timespan is not None:
-        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=7, title_fontsize=8)
+        axs.legend(
+            title=str(timespan) + " seconds after P-Wave arrival",
+            loc="best",
+            fontsize=7,
+            title_fontsize=8,
+        )
     else:
         axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
     if timespan is not None:
-        fig.savefig("Distance:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+        fig.savefig(
+            "Distance:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600
+        )
     else:
         fig.savefig("Distance:PredVSTrue", dpi=600)
         # Plot with differentiation between S and no S Arrivals
     fig, axs = plt.subplots(1)
-    axs.tick_params(axis='both', labelsize=8)
+    axs.tick_params(axis="both", labelsize=8)
     fig.suptitle(
-        "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival"
-        , fontsize=10)
+        "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival",
+        fontsize=10,
+    )
 
     x = np.array(true) / 1000
     y = pred / 1000
@@ -228,10 +254,19 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('cividis')
+    cm = plt.cm.get_cmap("cividis")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(x, y, c=z, cmap=cm, s=0.5, marker="s",lw = 0,
-                alpha=0.2, label="Recordings without a S-Wave arrival")
+    axs.scatter(
+        x,
+        y,
+        c=z,
+        cmap=cm,
+        s=0.5,
+        marker="s",
+        lw=0,
+        alpha=0.2,
+        label="Recordings without a S-Wave arrival",
+    )
 
     x = np.array(true_s) / 1000
     y = pred_s / 1000
@@ -240,28 +275,45 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     idx = z.argsort()
     x, y, z = x[idx], y[idx], z[idx]
 
-    cm = plt.cm.get_cmap('spring')
+    cm = plt.cm.get_cmap("spring")
 
-    axs.scatter(x, y, s=0.5, c=z, cmap=cm, marker="D",lw = 0,
-                alpha=0.2, label="Recordings in which there is a S-Wave arrival")
+    axs.scatter(
+        x,
+        y,
+        s=0.5,
+        c=z,
+        cmap=cm,
+        marker="D",
+        lw=0,
+        alpha=0.2,
+        label="Recordings in which there is a S-Wave arrival",
+    )
     if timespan is not None:
-        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=7, title_fontsize=8)
+        axs.legend(
+            title=str(timespan) + " seconds after P-Wave arrival",
+            loc="best",
+            fontsize=7,
+            title_fontsize=8,
+        )
     else:
         axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
     if timespan is not None:
-        fig.savefig("Distance:PredVSTrue2_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+        fig.savefig(
+            "Distance:PredVSTrue2_" + str(timespan).replace(".", "_") + "sec", dpi=600
+        )
     else:
         fig.savefig("Distance:PredVSTrue2", dpi=600)
         # Plot with differentiation between S and no S Arrivals
     fig, axs = plt.subplots(1)
-    axs.tick_params(axis='both', labelsize=8)
+    axs.tick_params(axis="both", labelsize=8)
     fig.suptitle(
-        "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival"
-        , fontsize=10)
+        "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival",
+        fontsize=10,
+    )
 
     x = np.array(true) / 1000
     y = pred / 1000
@@ -269,10 +321,19 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('autumn')
+    cm = plt.cm.get_cmap("autumn")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(x, y, c=z, cmap=cm, s=3, marker="s",lw = 0,
-                alpha=0.05, label="Recordings without a S-Wave arrival")
+    axs.scatter(
+        x,
+        y,
+        c=z,
+        cmap=cm,
+        s=3,
+        marker="s",
+        lw=0,
+        alpha=0.05,
+        label="Recordings without a S-Wave arrival",
+    )
 
     x = np.array(true_s) / 1000
     y = pred_s / 1000
@@ -281,27 +342,42 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     idx = z.argsort()
     x, y, z = x[idx], y[idx], z[idx]
 
-    cm = plt.cm.get_cmap('winter')
+    cm = plt.cm.get_cmap("winter")
 
-    axs.scatter(x, y, s=3, c=z, cmap=cm, marker="D",lw = 0,
-                alpha=0.05, label="Recordings in which there is a S-Wave arrival")
+    axs.scatter(
+        x,
+        y,
+        s=3,
+        c=z,
+        cmap=cm,
+        marker="D",
+        lw=0,
+        alpha=0.05,
+        label="Recordings in which there is a S-Wave arrival",
+    )
     if timespan is not None:
-        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=7, title_fontsize=8)
+        axs.legend(
+            title=str(timespan) + " seconds after P-Wave arrival",
+            loc="best",
+            fontsize=7,
+            title_fontsize=8,
+        )
     else:
         axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
     if timespan is not None:
-        fig.savefig("Distance:PredVSTrue3_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+        fig.savefig(
+            "Distance:PredVSTrue3_" + str(timespan).replace(".", "_") + "sec", dpi=600
+        )
     else:
         fig.savefig("Distance:PredVSTrue3", dpi=600)
     # Plot without differentiation
     fig, axs = plt.subplots(1)
-    axs.tick_params(axis='both', labelsize=8)
-    fig.suptitle(
-        "Predicted and true distance values")
+    axs.tick_params(axis="both", labelsize=8)
+    fig.suptitle("Predicted and true distance values")
     # " \nRSME = " + str(
     #    rsme), fontsize=10)
 
@@ -311,21 +387,30 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap('plasma')
+    cm = plt.cm.get_cmap("plasma")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(x, y, c=z, cmap=cm, s=2, marker="o",
-                alpha=0.05, label="Test set recordings")
+    axs.scatter(
+        x, y, c=z, cmap=cm, s=2, marker="o", alpha=0.05, label="Test set recordings"
+    )
 
     if timespan is not None:
-        axs.legend(title=str(timespan) + ' seconds after P-Wave arrival', loc='best', fontsize=8, title_fontsize=8)
+        axs.legend(
+            title=str(timespan) + " seconds after P-Wave arrival",
+            loc="best",
+            fontsize=8,
+            title_fontsize=8,
+        )
     else:
         axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color='black')
-    plt.axis('square')
+    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
     if timespan is not None:
-        fig.savefig("Distance:PredVSTrue_simple_" + str(timespan).replace(".", "_") + "sec", dpi=600)
+        fig.savefig(
+            "Distance:PredVSTrue_simple_" + str(timespan).replace(".", "_") + "sec",
+            dpi=600,
+        )
     else:
         fig.savefig("Distance:PredVSTrue_simple", dpi=600)
 
@@ -344,7 +429,7 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     timespan = np.linspace(0, 20, num=41)
 
     # load model
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = LitNetwork.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
     )
@@ -393,7 +478,10 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
                 p_pick_array = 3000
                 random_point = int(seq_len - t * 100)
                 waveform = raw_waveform[
-                           :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+                           :,
+                           p_pick_array
+                           - random_point: p_pick_array
+                                           + (seq_len - random_point),
                            ]
 
                 # modify waveform for input
@@ -447,22 +535,40 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
             i = np.where(timespan == t)[0][0]
             rsme_p[i] = torch.sqrt(F.mse_loss(learn_scaled, true))
             rsme_s[i] = torch.sqrt(F.mse_loss(learn_s_scaled, true_s))
-            rsme[i] = torch.sqrt(F.mse_loss(torch.cat((learn_scaled, learn_s_scaled)), torch.cat((true, true_s))))
+            rsme[i] = torch.sqrt(
+                F.mse_loss(
+                    torch.cat((learn_scaled, learn_s_scaled)), torch.cat((true, true_s))
+                )
+            )
             # variance_all[i]= torch.cat((variance_all,torch.cat((variance_scaled,variance_s_scaled))))
 
     rsme = rsme.cpu()
     rsme_p = rsme_p.cpu()
     rsme_s = rsme_s.cpu()
     fig, axs = plt.subplots(1)
-    axs.tick_params(axis='both', labelsize=8)
-    fig.suptitle(
-        "RSME after the P-arrival depending on S-arrivals", fontsize=10)
-    axs.plot(timespan, np.array(rsme_p) / 1000, linewidth=0.7,
-             label="Recordings without a S-Wave arrival", color="steelblue")
-    axs.plot(timespan, np.array(rsme_s) / 1000, linewidth=0.7,
-             label="Recordings in which there is a S-Wave arrival", color="crimson")
-    axs.plot(timespan, np.array(rsme) / 1000, linewidth=0.7,
-             label="All recordings", color="rebeccapurple")
+    axs.tick_params(axis="both", labelsize=8)
+    fig.suptitle("RSME after the P-arrival depending on S-arrivals", fontsize=10)
+    axs.plot(
+        timespan,
+        np.array(rsme_p) / 1000,
+        linewidth=0.7,
+        label="Recordings without a S-Wave arrival",
+        color="steelblue",
+    )
+    axs.plot(
+        timespan,
+        np.array(rsme_s) / 1000,
+        linewidth=0.7,
+        label="Recordings in which there is a S-Wave arrival",
+        color="crimson",
+    )
+    axs.plot(
+        timespan,
+        np.array(rsme) / 1000,
+        linewidth=0.7,
+        label="All recordings",
+        color="rebeccapurple",
+    )
     axs.legend(fontsize=8, loc="best")
     plt.xlabel("Time after P-Wave arrival[sec]", fontsize=8)
     plt.ylabel("RSME[km]", fontsize=8)
@@ -775,7 +881,9 @@ def predict(
     fig, axs = plt.subplots(2, sharex=True)
     axs[1].set_xlabel("Time in milliseconds", fontdict={"fontsize": 8})
     fig.suptitle(
-        "Distance prediction plot, the real distance ist about " + str(np.int(distance / 1000)) + "km"
+        "Distance prediction plot, the real distance ist about "
+        + str(np.int(distance / 1000))
+        + "km"
     )
     axs[0].plot(waveform[0], "r", linewidth=0.5)
     axs[0].plot(waveform[1], "b", linewidth=0.5)
@@ -817,9 +925,7 @@ def predict(
     )
 
     fig.tight_layout()
-    fig.savefig(
-        "Prediction Plot", dpi=600
-    )
+    fig.savefig("Prediction Plot", dpi=600)
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
     # h5data.close()
 
@@ -829,7 +935,7 @@ def predict(
 
 # rsme_timespan(cp, chp, hp)
 # predtrue_s_waves(cp, chp, hp)
-#predtrue_timespan(cp, chp, hp)
+# predtrue_timespan(cp, chp, hp)
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -884,5 +990,5 @@ if __name__ == "__main__":
             catalog_path=args.catalog_path,
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
-            timespan_array=args.time
+            timespan_array=args.time,
         )
