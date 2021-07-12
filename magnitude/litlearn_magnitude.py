@@ -43,7 +43,7 @@ class ModelCheckpointAtEpochEnd(pl.Callback):
 
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
-    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=128)
+    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=1024)
     logger = TensorBoardLogger("../tb_logs", name="magnitude")
     checkpoint_callback = ModelCheckpoint()
     # ch2 = ModelCheckpointAtEpochEnd()
@@ -471,7 +471,7 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     fig.savefig("Magnitude:RSME", dpi=600)
 
 
-learn(cp, hp, mp)
+#learn(cp, hp, mp)
 # predict(cp, hp, chp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

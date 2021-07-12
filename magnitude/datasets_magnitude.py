@@ -19,7 +19,7 @@ def obspy_detrend(data):
 
 
 def normalize_stream(stream, global_max=False):
-    stream_max = np.float32(np.abs(stream).max())
+    stream_max = np.abs(stream).max()
     if global_max is True:
         stream /= stream_max
     else:
@@ -112,5 +112,5 @@ class DetectionDataset(Dataset):
 
         station_stream = np.stack((g0, g1, g2))
         station_stream, max_stream = normalize_stream(station_stream)
-        sample = {"waveform": (station_stream, 0.01 * np.log(max_stream)), "label": label}
+        sample = {"waveform": (station_stream, np.float32(0.01 * np.log(max_stream))), "label": label}
         return sample
