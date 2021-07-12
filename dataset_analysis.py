@@ -186,10 +186,10 @@ def analyse(cp):
     idx = z.argsort()
     cm = plt.cm.get_cmap('plasma')
     x, y, z = x[idx], y[idx], z[idx]
-    axes.scatter(x, y, c=z, cmap=cm, s=1, alpha=0.1)
+    axes.scatter(x, y, c=z, cmap=cm, s=1, alpha=0.05)
     plt.xlabel("Distance[km]", fontsize=8)
     plt.ylabel("Depth[km]", fontsize=8)
-    fig7.savefig("depth_distance.png")
+    fig7.savefig("depth_distance.png",dpi=600)
 
     # fig3 = plt.figure()
     # axes1 = fig3.add_subplot(111)
