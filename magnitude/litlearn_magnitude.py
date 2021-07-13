@@ -51,6 +51,8 @@ def learn(catalog_path, hdf5_path, model_path):
         callbacks=[checkpoint_callback],
         gpus=[0],
         logger=logger,
+        gradient_clip_val=1,
+        track_grad_norm=2,
     )
     trainer.fit(network, datamodule=dm)
 
