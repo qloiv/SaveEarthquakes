@@ -187,9 +187,10 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap("autumn")
+    cm = plt.cm.get_cmap("spring")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(
+    z *= len(x) / z.max()
+    a = axs.scatter(
         x,
         y,
         c=z,
@@ -198,7 +199,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         s=0.3,
         alpha=0.3,
         lw=0,
-        label="Recordings without a S-Wave arrival",
+        # label="Recordings without a S-Wave arrival",
     )
 
     x = np.array(true_s) / 1000
@@ -209,8 +210,8 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     x, y, z = x[idx], y[idx], z[idx]
 
     cm = plt.cm.get_cmap("winter")
-
-    axs.scatter(
+    z *= len(x) / z.max()
+    b = axs.scatter(
         x,
         y,
         c=z,
@@ -219,7 +220,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         s=0.3,
         alpha=0.3,
         lw=0,
-        label="Recordings in which there is a S-Wave arrival",
+        # label="Recordings in which there is a S-Wave arrival",
     )
     if timespan is not None:
         axs.legend(
@@ -228,12 +229,19 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
             fontsize=7,
             title_fontsize=8,
         )
-    else:
-        axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    # else:
+    # axs.legend(loc=0)
+    axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
     plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+    bc = fig.colorbar(b)
+    bc.ax.tick_params(labelsize=8)
+    bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
     if timespan is not None:
         fig.savefig(
             "Distance:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600
@@ -256,7 +264,9 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     idx = z.argsort()
     cm = plt.cm.get_cmap("cividis")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(
+    z *= len(x) / z.max()
+    
+    a = axs.scatter(
         x,
         y,
         c=z,
@@ -265,7 +275,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         marker="s",
         lw=0,
         alpha=0.2,
-        label="Recordings without a S-Wave arrival",
+        # label="Recordings without a S-Wave arrival",
     )
 
     x = np.array(true_s) / 1000
@@ -276,8 +286,9 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     x, y, z = x[idx], y[idx], z[idx]
 
     cm = plt.cm.get_cmap("spring")
+    z *= len(x) / z.max()
 
-    axs.scatter(
+    b = axs.scatter(
         x,
         y,
         s=0.5,
@@ -286,7 +297,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         marker="D",
         lw=0,
         alpha=0.2,
-        label="Recordings in which there is a S-Wave arrival",
+        # label="Recordings in which there is a S-Wave arrival",
     )
     if timespan is not None:
         axs.legend(
@@ -297,10 +308,17 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         )
     else:
         axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
     plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+    bc = fig.colorbar(b)
+    bc.ax.tick_params(labelsize=8)
+    bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
     if timespan is not None:
         fig.savefig(
             "Distance:PredVSTrue2_" + str(timespan).replace(".", "_") + "sec", dpi=600
@@ -321,18 +339,20 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
     idx = z.argsort()
-    cm = plt.cm.get_cmap("autumn")
+    cm = plt.cm.get_cmap("spring")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(
+    z *= len(x) / z.max()
+
+    a = axs.scatter(
         x,
         y,
         c=z,
         cmap=cm,
-        s=3,
+        s=0.2,
         marker="s",
         lw=0,
-        alpha=0.05,
-        label="Recordings without a S-Wave arrival",
+        alpha=0.5,
+        #label="Recordings without a S-Wave arrival",
     )
 
     x = np.array(true_s) / 1000
@@ -343,17 +363,18 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     x, y, z = x[idx], y[idx], z[idx]
 
     cm = plt.cm.get_cmap("winter")
+    z *= len(x) /z.max()
 
-    axs.scatter(
+    b = axs.scatter(
         x,
         y,
-        s=3,
+        s=0.2,
         c=z,
         cmap=cm,
         marker="D",
         lw=0,
-        alpha=0.05,
-        label="Recordings in which there is a S-Wave arrival",
+        alpha=0.5,
+        #label="Recordings in which there is a S-Wave arrival",
     )
     if timespan is not None:
         axs.legend(
@@ -364,10 +385,17 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         )
     else:
         axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
     plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+    bc = fig.colorbar(b)
+    bc.ax.tick_params(labelsize=8)
+    bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
     if timespan is not None:
         fig.savefig(
             "Distance:PredVSTrue3_" + str(timespan).replace(".", "_") + "sec", dpi=600
@@ -389,7 +417,9 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     idx = z.argsort()
     cm = plt.cm.get_cmap("plasma")
     x, y, z = x[idx], y[idx], z[idx]
-    axs.scatter(
+    z *= len(x) / z.max()
+
+    a = axs.scatter(
         x, y, c=z, cmap=cm, s=2, marker="o", alpha=0.05, label="Test set recordings"
     )
 
@@ -402,10 +432,14 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         )
     else:
         axs.legend(loc=0)
-    axs.axline((0, 0), (100, 100), linewidth=0.5, color="black")
+    axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
     plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
     if timespan is not None:
         fig.savefig(
             "Distance:PredVSTrue_simple_" + str(timespan).replace(".", "_") + "sec",
@@ -935,7 +969,7 @@ def predict(
 
 # rsme_timespan(cp, chp, hp)
 # predtrue_s_waves(cp, chp, hp)
-# predtrue_timespan(cp, chp, hp)
+predtrue_timespan(cp, chp, hp)
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
