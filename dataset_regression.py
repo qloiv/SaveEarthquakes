@@ -18,7 +18,8 @@ y = data[:, 2]  # the magnitude
 print(y, y.shape)
 reg = LinearRegression().fit(X, y)
 coefs = reg.coef_
-print(coefs[0])
-print(coefs[1])
-plt.scatter(X[:, 0], y)
-plt.savefig("regression.png")
+print(np.round(coefs[0], decimals= 2))
+print(np.round(coefs[1],decimals = 2))
+print(np.round(reg.intercept_, decimals = 2))
+#plt.scatter(X[:, 0], y)
+#plt.savefig("regression.png")
