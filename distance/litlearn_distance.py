@@ -969,7 +969,7 @@ def predict(
 
 # rsme_timespan(cp, chp, hp)
 # predtrue_s_waves(cp, chp, hp)
-predtrue_timespan(cp, chp, hp)
+#predtrue_timespan(cp, chp, hp)
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

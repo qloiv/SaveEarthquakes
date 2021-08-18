@@ -43,7 +43,7 @@ class ModelCheckpointAtEpochEnd(pl.Callback):
 
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
-    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=1024)
+    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=512)
     logger = TensorBoardLogger("../tb_logs", name="magnitude")
     checkpoint_callback = ModelCheckpoint()
     # ch2 = ModelCheckpointAtEpochEnd()
@@ -117,10 +117,11 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
         g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
 
         station_stream = np.stack((g0, g1, g2))
-        station_stream, _ = normalize_stream(station_stream)
+        station_stream, max_stream = normalize_stream(station_stream)
         station_stream = torch.from_numpy(station_stream[None])
-        out = model(station_stream)
-        _, predicted = torch.max(out.data, 1)
+        max_stream = torch.Tensor(max_stream)
+        predicted = model((station_stream, np.float32(0.001 * np.log(max_stream)))).squeeze()
+       # _, predicted = torch.max(out.data, 1)
         output[i] = predicted
 
     t = np.linspace(1, 4000, num=4000)

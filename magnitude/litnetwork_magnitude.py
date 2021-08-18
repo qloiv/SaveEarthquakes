@@ -16,6 +16,7 @@ from torch.nn import (
 class LitNetwork(LightningModule):
     def __init__(self):
         super().__init__()
+        self.criterion = MSELoss()
         self.cnn_layer1 = Sequential(
             Conv1d(3, 32, kernel_size=21, stride=1, padding=10),
             # pytorch hat noch keine padding_mode = same implementation
@@ -77,7 +78,7 @@ class LitNetwork(LightningModule):
         x = self.cnn_layer6(x)
 
         x = self.flatten_layer(x)
-        x = torch.cat((x, max_str.view(x.shape[0], 1)), dim=1)
+        x = torch.cat((x, max_str.unsqueeze(-1)), dim=1)
         x = self.linear_layers1(x)
         x = self.linear_layers2(x)
         return x
@@ -86,9 +87,8 @@ class LitNetwork(LightningModule):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform).squeeze()
-        x = outputs
-        criterion = MSELoss()
-        loss = criterion(x, label)
+        loss = self.criterion(outputs, label)
+       # print(loss)
         self.log("train_loss", loss)
         return loss
 
@@ -96,9 +96,7 @@ class LitNetwork(LightningModule):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform).squeeze()
-        x = outputs
-        criterion = MSELoss()
-        loss = criterion(x, label)
+        loss = self.criterion(outputs, label)
         self.log("val_loss", loss)
         return loss
 
@@ -106,9 +104,7 @@ class LitNetwork(LightningModule):
         waveform = inputs["waveform"]
         label = inputs["label"]
         outputs = self(waveform).squeeze()
-        x = outputs
-        criterion = MSELoss()
-        loss = criterion(x, label)
+        loss = self.criterion(outputs, label)
         self.log("test_loss", loss)
         return loss
 

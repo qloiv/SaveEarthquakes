@@ -89,6 +89,7 @@ class DetectionDataset(Dataset):
         waveform = np.array(self.h5data.get(event + "/" + station))
         seq_len = self.time_before + self.time_after  # is 2000 if 20sec Window
         random_point = np.random.randint(seq_len)
+        #random_point = 0
         station_stream = waveform[
                          :, self.p_pick - random_point: self.p_pick + (seq_len - random_point)
                          ]
@@ -113,7 +114,7 @@ class DetectionDataset(Dataset):
         station_stream = np.stack((g0, g1, g2))
         station_stream, max_stream = normalize_stream(station_stream)
         sample = {
-            "waveform": (station_stream, np.float32(0.01 * np.log(max_stream))),
+            "waveform": (station_stream, np.float32(0.001 * np.log(max_stream))),
             "label": label,
         }
         return sample
