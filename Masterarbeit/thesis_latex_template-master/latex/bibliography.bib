@@ -8,6 +8,21 @@
 	year={2018},
 	publisher={Seismological Society of America}
 }
+@Inbook{Havskov2016,
+	author="Havskov, Jens
+	and Alguacil, Gerardo",
+	title="Seismic Networks",
+	bookTitle="Instrumentation in Earthquake Seismology",
+	year="2016",
+	publisher="Springer International Publishing",
+	address="Cham",
+	pages="261--308",
+	abstract="A seismic network is defined as a group of stations working together jointly for data collection and analysis. Seismic stations operating independently can be considered a network if the data from these stations is joined and processed together. Today most seismic networks have stations linked in a communication network so data is transmitted to a center in real time.",
+	isbn="978-3-319-21314-9",
+	doi="10.1007/978-3-319-21314-9_8",
+	url="https://doi.org/10.1007/978-3-319-21314-9_8"
+}
+
 @article{Munchmeyer2020,
 	abstract = {Magnitude estimation is a central task in seismology needed for a wide spectrum of applications ranging from seismicity analysis to rapid assessment of earthquakes. However, magnitude estimates at individual stations show significant variability, mostly due to propagation effects, radiation pattern and ambient noise. To obtain reliable and precise magnitude estimates, measurements from multiple stations are therefore usually averaged. This strategy requires good data availability, which is not always given, for example for near real time applications or for small events. We developed a method to achieve precise magnitude estimations even in the presence of only few stations. We achieve this by reducing the variability between single station estimates through a combination of optimization and machine learning techniques on a large catalogue. We evaluate our method on the large scale IPOC catalogue with {\textgreater}100 000 events, covering seismicity in the northern Chile subduction zone between 2007 and 2014. Our aim is to create a method that provides low uncertainty magnitude estimates based on physically meaningful features. Therefore we combine physics based correction functions with boosting tree regression. In a first step, we extract 110 features from each waveform, including displacement, velocity, acceleration and cumulative energy features. We correct those features for source, station and path effects by imposing a linear relation between magnitude and the logarithm of the features. For the correction terms, we define a non-parametric correction function dependent on epicentral distance and event depth and a station specific, adaptive 3-D source and path correction function. In a final step, we use boosting tree regression to further reduce interstation variance by combining multiple features. Compared to a standard, non-parametric, 1-D correction function, our method reduces the standard deviation of single station estimates by up to 57 percent of which 1 percent can be attributed to the improved correction functions, while boosting tree regression gives a further reduction of 40 percent. We analyse the resulting magnitude estimates regarding their residuals and relation to each other. The definition of a physics-based correction function enables us to inspect the path corrections and compare them to structural features. By analysing feature importance, we show that envelope and P wave derived features are key parameters for reducing uncertainties. Nonetheless the variety of features is essential for the effectiveness of the boosting tree regression. To further elucidate the information extractable from a single station trace, we train another boosting tree on the uncorrected features. This regression yields magnitude estimates with uncertainties similar to the single features after correction, but without using the earthquake location as required for applying the correction terms. Finally, we use our results to provide high precision magnitudes and their uncertainties for the IPOC catalogue.},
 	annote = {Magnitudenskalen werden vorher normiert

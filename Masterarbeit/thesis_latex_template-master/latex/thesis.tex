@@ -59,7 +59,7 @@
     colorlinks, linkcolor={dark-red},
     citecolor={dark-blue}, urlcolor={medium-blue}
 }
-\urlstyle{same}	% Use same font for urls as for everything else
+%\urlstyle{same}	% Use same font for urls as for everything else
 
 % Redfine some autoref macros for proper caseing.
 \renewcommand*{\chapterautorefname}{Chapter}
@@ -95,7 +95,7 @@
 \usepackage{todonotes}
 
 % Shorthand for including bibliography information to subfiles. This way each subfile will have access to the bibliography
-\def\subfilebib{\bibliographystyle{alphaurl}\bibliography{bibliography}}
+\def\subfilebib{\bibliographystyle{abbrvnat}\bibliography{bibliography}}
 
 % Where all graphics to be found
 \graphicspath{ {../pictures/} }
@@ -137,7 +137,7 @@
 \renewcommand{\thesubsection}{\Alph{section}.\arabic{subsection}}
 \subfile{appendix-formulas}
 
-\bibliographystyle{alphaurl}
+\bibliographystyle{abbrvnat}
 \bibliography{bibliography}
 
 \subfile{StatementOfAuthorship}

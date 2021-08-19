@@ -35,6 +35,7 @@ We can see all mentioned types of waves in figure \ref{fig:waves}.¸
 \subsection{Seismic Data}
 The seismic waves which arrive on a site can be recorded by a seismometer, which is the instrument recording ground motion as displacement, velocity or acceleration. A seismograph is the system build around the seismometer. Seismograms show the measured motions as a 1D signal for the three motion orthogonal axes, namely north-south, east-west and ground-up. The recordings depend on the sensitivity of the sensors, but also on earthquake and location. For further reading see \cite{IntroEarthquakes}, page 398. An example for a recording of one axis at an earthquake arrival can be seen in figure \ref{fig:seismogram}. The change from noise to P-Wave to S-Wave arrival is clearly visible in the example. 
 \subsection{Networks}
+Multiple seismometers might be organized in a network, where stations are linked together virtually or physically and their data can be processed nearly simultaneously. Network goals are often earthquake prediction with the according depth and distance, but network size, sensor type and network range can be drastically different depending on the type and magnitude of earthquake which must be detected. As the emitted waves get weaker depending on distance and soil type good coverage is crucial to get realistic predictions. This is especially important for location computation, as we need three or more sensors on the corners of a preferably equilateral triangle to get a precise location with the circle method. More information on the organisation of sensor networks can be found in /cite{harskov}.
 \subsection{Early Warning}
 \begin{figure*}[hb]
 	\centering
@@ -50,8 +51,23 @@ The seismic waves which arrive on a site can be recorded by a seismometer, which
 \section{Estimation Representation} 
  It is in important to keep in mind, that we do not take into account the uncertainty of our magnitude model and the representation of an earthquake with just ground motion sensors is itself a simplification.
 \subsection{Types of uncertainty}
-\subsection{Gaussian function}
+We divide between epistemic and aleatoric uncertainty.
+\begin{itemize}
+	\item Epistemic uncertainty is our model uncertainty. The model can be unsure about certain parts of our dataset, because it has seen too few data points, but it can also be lacking the design to wholly learn and understand the dataset. The model can also be unsure, if we are unsure about the model's parameters for prediction or if we have multiple models to choose from when predicting. 
+	\\
+	Epistemic uncertainty can be reduced by added more training examples and choosing a good model architecture.
+	\item Aleatoric uncertainty is uncertainty engrained in the data. This includes instrument noise and (over-)simplification of data information. We further divide between homoscedatic and heteroscedatic aleatoric noise. While homoscedatic uncertainty stays the same for all data point examples, as it would be with a constant sensor-offset noise, heteroscedatic uncertainty can be different for each input sample and is much harder to track and.
+\end{itemize}
+\subsection{Uncertainties in our model}
+There are a few key points in the way our dataset is build which contribute to aleatoric uncertainty. While seismometers are extremely precise instruments, they are not completely free from sensor noise. We remove the sensor response in preprocessing, but they are still physical instruments, which cannot guarantee total precision, although it is more than enough for our model. 
+\\
+Even more, our learning goals, distance and magnitude are itself hard to determine. The distance to an earthquake has to be assumed from the emitted waves recorded by multiple seismometers and relies on certain simplifications of earthquake physics. As this is the same for the magnitude, the magnitude itself is a physical concept, that tries to capture the strength of an earthquake, but uses a simplified representation of the energy the earthquake emits, which again is only computed on the basis of our recorded data.
 
+Epistemic uncertainty is far easier to detect. As also seen in /ref{dataset} our data is not equally distributed and we are lacking examples for higher magnitudes and (naturally, as small earthquakes cannot be detected by remote sensors) higher distances. 
+
+As distance and magnitude are measurements of our sensor data, the model uncertainty also changes while the signal goes in and out, as earthquake waves arrive and depart. We do expect that, because both magnitude and distance are linked to the wavelength and amplitude of certain emitted waves.
+\subsection{Implementation}
+If our goal is to give a degree of uncertainty for the epistemic uncertainty then we have various techniques to choose from. 
 
 
 
