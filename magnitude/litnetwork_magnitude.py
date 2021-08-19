@@ -107,6 +107,12 @@ class LitNetwork(LightningModule):
         loss = self.criterion(outputs, label)
         self.log("test_loss", loss)
         return loss
+    
+    def predict_step(self, inputs, inputs_idx):
+        waveform = inputs["waveform"]
+        label = inputs["label"]
+        outputs = self(waveform).squeeze()
+        return self(waveform).squeeze()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)    # 0.001 is default lr

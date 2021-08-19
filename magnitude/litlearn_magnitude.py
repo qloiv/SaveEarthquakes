@@ -76,7 +76,6 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     # test (pass in the model)
     trainer.test(model, datamodule=dm)
 
-
 def predict(catalog_path, hdf5_path, checkpoint_path):
     sequence_length = 20
     split_key = "test_files"
@@ -119,8 +118,13 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
         station_stream = np.stack((g0, g1, g2))
         station_stream, max_stream = normalize_stream(station_stream)
         station_stream = torch.from_numpy(station_stream[None])
-        max_stream = torch.Tensor(max_stream)
-        predicted = model((station_stream, np.float32(0.001 * np.log(max_stream)))).squeeze()
+        ms = np.float32(0.001 * np.log(max_stream))
+        ms = torch.tensor(ms).unsqueeze(-1)
+        model_input = (station_stream,  ms)
+        #print(type(model_input))
+       # print(type(model_input[0]))
+        #print(type(model_input[1]), model_input[1].shape)
+        predicted = model(model_input).squeeze()
        # _, predicted = torch.max(out.data, 1)
         output[i] = predicted
 
@@ -142,7 +146,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
 
 
 def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
+
     for t in timespan_array:
+        t = int(t)
         predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
 
 
@@ -222,11 +228,17 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
             waveform, _ = normalize_stream(waveform)
 
             # evaluate stream
-            station_stream = torch.from_numpy(waveform[None])
+
+            station_stream, max_stream = normalize_stream(waveform)
+            station_stream = torch.from_numpy(station_stream[None])
             station_stream = station_stream.to(device)
-            outputs = model(station_stream)
-            learned = outputs[0][0]
-            variance = outputs[1][0]
+            ms = np.float32(0.001 * np.log(max_stream))
+            ms = torch.tensor(ms).unsqueeze(-1)
+            ms = ms.to(device)
+            model_input = (station_stream,  ms)
+            outputs = model(model_input).squeeze()
+            learned = outputs.unsqueeze(-1)
+            
 
             # check if the s pick already arrived
             if s and (s - p) * 100 < (seq_len - random_point):
@@ -537,6 +549,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_path", type=str)
     parser.add_argument("--checkpoint_path", type=str)
     parser.add_argument("--hparams_file", type=str)
+    parser.add_argument("--timespan", type=list)
+    parser.add_argument("--time", type = int)
     args = parser.parse_args()
     action = args.action
 
@@ -558,4 +572,11 @@ if __name__ == "__main__":
             catalog_path=args.catalog_path,
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
+        )
+    if action == "timespan":
+        timespan_iteration(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+            timespan_array=(args.timespan),
         )

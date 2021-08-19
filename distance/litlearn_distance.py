@@ -55,6 +55,7 @@ def learn(catalog_path, hdf5_path, model_path):
 
 def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
     for t in timespan_array:
+        t = int(t)
         predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
 
 
@@ -979,7 +980,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_path", type=str)
     parser.add_argument("--checkpoint_path", type=str)
     parser.add_argument("--hparams_file", type=str)
-    parser.add_argument("--time", type=str)
+    parser.add_argument("--timespan", type=list)
     args = parser.parse_args()
     action = args.action
     if action == "test_one":
@@ -1024,5 +1025,5 @@ if __name__ == "__main__":
             catalog_path=args.catalog_path,
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
-            timespan_array=args.time,
+            timespan_array=args.timespan,
         )
