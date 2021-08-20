@@ -297,7 +297,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         s=0.2,
         marker="s",
         lw=0,
-        alpha=1,
+        alpha=3,
         # label="Recordings without a S-Wave arrival",
     )
 
@@ -319,7 +319,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         cmap=cm,
         marker="D",
         lw=0,
-        alpha=1,
+        alpha=3,
         # label="Recordings in which there is a S-Wave arrival",
     )
     if timespan is not None:

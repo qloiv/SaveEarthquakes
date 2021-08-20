@@ -1,16 +1,19 @@
 from __future__ import print_function, division
 
 import argparse
+import os
 from random import randrange
 
 import h5py
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
+import obspy
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
+from obspy import UTCDateTime
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
 from scipy.stats import gaussian_kde
@@ -23,10 +26,12 @@ from litnetwork_distance import LitNetwork
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+wpa = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
 hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 mp = "/home/viola/WS2021/Code/Models"
 chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
 hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
+ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
@@ -789,6 +794,215 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     # h5data.close()
 
 
+def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add):
+    # load catalog with random test event
+    catalog = pd.read_csv(catalog_path)
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    idx = randrange(0, len(test_catalog))
+    print(idx)
+    event, station, distance, p, s, ma = test_catalog.iloc[idx][
+        ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK", "MA"]
+    ]
+    dist = np.array([1, 600000])
+    print(max(test_catalog["DIST"]))
+    assert max(test_catalog["DIST"]) <= 600000
+    assert min(test_catalog["DIST"]) >= 1
+    scaler = MinMaxScaler()
+    scaler.fit(dist.reshape(-1, 1))
+    ts_dist = scaler.transform(distance.reshape(1, -1))
+    label = np.float32(ts_dist.squeeze())
+    print(label)
+
+    # load network
+    split_key = "test_files"
+    file_path = hdf5_path
+    h5data = h5py.File(file_path, "r").get(split_key)
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+
+    raw_waveform = np.array(h5data.get(event + "/" + station))
+    seq_len = 20 * 100  # *sampling rate 20 sec window
+    p_pick_array = 3000
+    random_point = np.random.randint(seq_len)
+    waveform = raw_waveform[
+               :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+               ]
+    print(np.shape(waveform))
+
+    spick = False
+    if s and (s - p) * 100 < (seq_len - random_point):
+        print("S Pick included, diff: ", (s - p), (seq_len - random_point) / 100)
+        spick = True
+
+    d0 = obspy_detrend(waveform[0])
+    d1 = obspy_detrend(waveform[1])
+    d2 = obspy_detrend(waveform[2])
+
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+    f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+    f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+    # set low pass filter
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
+    g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+    g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+    g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+    waveform = np.stack((g0, g1, g2))
+    waveform, _ = normalize_stream(waveform)
+
+    station_stream = torch.from_numpy(waveform[None])
+    outputs = model(station_stream)
+    learned = outputs[0][0]
+    var = outputs[1][0]
+    print(learned, var)
+
+    sigma = np.sqrt(var)
+
+    r_learned = scaler.inverse_transform(learned.reshape(1, -1))[0]
+    # r_var = (scaler.inverse_transform(var.reshape(1, -1))[0])
+    r_sigma = scaler.inverse_transform(sigma.reshape(1, -1))[0]
+    print("dist in m", r_learned, "sigma", r_sigma)
+
+    if os.path.getsize(os.path.join(waveform_path_add, f"{event}.mseed")) > 0:
+        o_raw_waveform = obspy.read(
+            os.path.join(waveform_path, f"{event}.mseed")
+        ) + obspy.read(os.path.join(waveform_path_add, f"{event}.mseed"))
+    else:
+        o_raw_waveform = obspy.read(os.path.join(waveform_path, f"{event}.mseed"))
+
+    o_waveform = o_raw_waveform.select(station=station, channel="HHZ")
+    o_station_stream = o_waveform.slice(
+        starttime=UTCDateTime(p),  #
+        endtime=UTCDateTime(p) + 3.99,
+    )  # -0.01 deletes the last item, therefore enforcing array indexing
+
+    # load inventory
+    inv = obspy.read_inventory(inventory)
+    inv_selection = inv.select(station=station, channel="HHZ")
+
+    new_stream_w30 = o_station_stream.copy()
+
+    disp_w30 = new_stream_w30.remove_response(
+        inventory=inv_selection, pre_filt=None, output="DISP", water_level=30
+    )
+    # disp_w30.plot()
+    peakdisp = 100 * np.max(np.abs(disp_w30))  # already returns absolute maximum amplitude
+    print("pd", peakdisp, "dist", r_learned / 1000)
+    mag = 0.44 * np.log(peakdisp) + 0.32 * np.log(r_learned / 1000) + 5.47
+    magmax = 0.44 * np.log(peakdisp) + 0.32 * np.log((r_learned + r_sigma) / 1000) + 5.47
+    magmin = 0.44 * np.log(peakdisp) + 0.32 * np.log((r_learned - r_sigma) / 1000) + 5.47
+    print("pred. mag vs real mag", mag, ma)
+    print("pred.mag for +sigma", magmax)
+    print("pred.mag for -sigma", magmin)
+
+    fig, axs = plt.subplots(3, sharex=True)
+    axs[2].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[0].tick_params(axis="both", labelsize=8)
+
+    fig.suptitle(
+        "Predicted and real magnitude, computed from the distance. Includes uncertainty levels.", fontsize=8
+    )
+
+    axs[2].set_xlabel("Time in seconds", fontsize=8)
+    axs[0].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
+
+    axs[0].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
+    axs[1].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
+    axs[2].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
+
+    axs[0].set_title(
+        "Normalized and filtered input for Z(blue), N(orange) and E(green)",
+        fontdict={"fontsize": 8},
+    )
+
+    # axs[1,0].axvline(random_point, color="black")
+    # axs[2,0].axvline(random_point, color="black")
+    axs[1].set_title("Predicted and real distance", fontdict={"fontsize": 8})
+    t = np.linspace(1, 2000, num=2000)
+
+    axs[1].axhline(distance, color="darkgreen", linestyle="dashed", linewidth=1)
+    axs[1].axhline(r_learned, color="seagreen", alpha=1, linewidth=0.7)
+    axs[1].fill_between(t, r_learned, r_learned + r_sigma, alpha=0.4, color="seagreen", linewidth=0.5)
+    axs[1].fill_between(t, r_learned, r_learned - r_sigma, alpha=0.4, color="seagreen", linewidth=0.5)
+    xmin, xmax = axs[1].get_xlim()
+    axs[1].annotate("Real distance(" + str(np.round(distance / 1000, decimals=2)) + ")", xy=(xmin, distance),
+                    xytext=(2, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6)
+    axs[1].annotate("Predicted distance(" + str(np.round(r_learned[0] / 1000, decimals=2)) + ")", xy=(xmin, r_learned),
+                    xytext=(2, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6)
+
+    axs[2].annotate("Real magnitude(" + str(np.round(ma, decimals=2)) + ")", xy=(xmin, ma), xytext=(2, 2),
+                    textcoords='offset points',
+                    annotation_clip=False, fontsize=6)
+    axs[2].annotate("Predicted magnitude(" + str(np.round(mag[0], decimals=2)) + ")", xy=(xmin, mag), xytext=(2, 2),
+                    textcoords='offset points',
+                    annotation_clip=False, fontsize=6)
+
+    ymin, ymax = axs[2].get_ylim()
+    axs[2].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+
+    axs[2].set_title("Predicted and real magnitude", fontdict={"fontsize": 8})
+    axs[2].axhline(ma, color="indigo", linestyle="dashed", linewidth=1)
+    axs[2].axhline(mag, color="mediumvioletred", alpha=1, linewidth=0.7)
+    axs[2].fill_between(t, mag, magmax, alpha=0.4, color="mediumvioletred", linewidth=0.5)
+    axs[2].fill_between(t, mag, magmin, alpha=0.4, color="mediumvioletred", linewidth=0.5)
+    #
+    # xt = axs[2].get_xticks()
+    # xt = np.append(xt, random_point)
+    #
+    # xtl = xt.tolist()
+    # xtl[-1] = "P-Pick"
+    # axs[2].set_xticks(xt)
+    # axs[2].set_xticklabels(xtl)
+
+    ymin, ymax = axs[0].get_ylim()
+    axs[0].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    ymin, ymax = axs[1].get_ylim()
+    axs[1].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    ymin, ymax = axs[2].get_ylim()
+    axs[2].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    if spick:
+        ymin, ymax = axs[0].get_ylim()
+        axs[0].annotate("S-Pick", xy=(random_point + (s - p) * 100, ymin), xytext=(-4, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+        ymin, ymax = axs[1].get_ylim()
+        axs[1].annotate("S-Pick", xy=(random_point + (s - p) * 100, ymin), xytext=(-4, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+        ymin, ymax = axs[2].get_ylim()
+        axs[2].annotate("S-Pick", xy=(random_point + (s - p) * 100, ymin), xytext=(-4, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+        axs[0].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dotted", linewidth=0.5
+        )
+        axs[1].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dotted", linewidth=0.5
+        )
+        axs[2].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dotted", linewidth=0.5
+        )
+    scale_y = 1000  # metres to km
+    ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    axs[1].yaxis.set_major_formatter(ticks_y)
+    fig.tight_layout()
+    fig.savefig("ComputeMag: Results", dpi=600)
+    # h5data.close()
+
+
 def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     model = LitNetwork.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
@@ -967,11 +1181,12 @@ def predict(
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
-
+# test_one(cp,chp,hp)
+compute_magnitude(cp, chp, hp, ip, wp, wpa)
 # rsme_timespan(cp, chp, hp)
 # predtrue_s_waves(cp, chp, hp)
-#predtrue_timespan(cp, chp, hp)
-#timespan_iteration(cp, chp, hp, timespan_array=[8, 16])
+# predtrue_timespan(cp, chp, hp)
+# timespan_iteration(cp, chp, hp, timespan_array=[8, 16])
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
