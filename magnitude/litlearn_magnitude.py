@@ -297,7 +297,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         s=0.2,
         marker="s",
         lw=0,
-        alpha=0.5,
+        alpha=1,
         # label="Recordings without a S-Wave arrival",
     )
 
@@ -319,7 +319,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         cmap=cm,
         marker="D",
         lw=0,
-        alpha=0.5,
+        alpha=1,
         # label="Recordings in which there is a S-Wave arrival",
     )
     if timespan is not None:
@@ -634,7 +634,7 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
 # predict(cp, hp, chp)
 
 # predtrue_timespan(catalog_path=cp, checkpoint_path=chp, hdf5_path=hp, timespan = 4)
-timespan_iteration(cp, chp, hp, timespan_array=[8, 16])
+#timespan_iteration(cp, chp, hp, timespan_array=[8, 16])
 # rsme_timespan(cp,chp,hp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -674,4 +674,11 @@ if __name__ == "__main__":
             hdf5_path=args.hdf5_path,
             checkpoint_path=args.checkpoint_path,
             timespan_array=args.timespan,
+        )
+    if action == "predtrue":
+        predtrue_timespan(
+            catalog_path=args.catalog_path,
+            hdf5_path=args.hdf5_path,
+            checkpoint_path=args.checkpoint_path,
+            timespan=args.timespan,
         )
