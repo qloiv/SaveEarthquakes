@@ -798,6 +798,8 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    test_catalog = test_catalog[test_catalog["MA"] >= 6]
+    test_catalog = test_catalog[test_catalog["DIST"] <=200000]
     idx = randrange(0, len(test_catalog))
     print(idx)
     event, station, distance, p, s, ma = test_catalog.iloc[idx][
@@ -898,7 +900,12 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     print("pred. mag vs real mag", mag, ma)
     print("pred.mag for +sigma", magmax)
     print("pred.mag for -sigma", magmin)
-
+    kmag = 1.23 * np.log(peakdisp) + 1.38 * np.log(r_learned / 1000) + 5.39
+    kmagmax = 1.23 * np.log(peakdisp) + 1.38 * np.log(r_learned +r_sigma/ 1000) + 5.39
+    kmagmin = 1.23 * np.log(peakdisp) + 1.38 * np.log(r_learned -r_sigma/ 1000) + 5.39
+    print("ka:pred. mag vs real mag", mag, ma)
+    print("ka:pred.mag for +sigma", magmax)
+    print("ka:pred.mag for -sigma", magmin)
     fig, axs = plt.subplots(3, sharex=True)
     axs[2].tick_params(axis="both", labelsize=8)
     axs[1].tick_params(axis="both", labelsize=8)
@@ -953,6 +960,7 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     axs[2].set_title("Predicted and real magnitude", fontdict={"fontsize": 8})
     axs[2].axhline(ma, color="indigo", linestyle="dashed", linewidth=1)
     axs[2].axhline(mag, color="mediumvioletred", alpha=1, linewidth=0.7)
+    axs[2].axhline(kmag, color="hotpink", alpha=1, linewidth=0.7)
     axs[2].fill_between(t, mag, magmax, alpha=0.4, color="mediumvioletred", linewidth=0.5)
     axs[2].fill_between(t, mag, magmin, alpha=0.4, color="mediumvioletred", linewidth=0.5)
     #
@@ -998,7 +1006,7 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
     axs[2].xaxis.set_major_formatter(ticks_x)
     axs[1].yaxis.set_major_formatter(ticks_y)
-    fig.tight_layout()
+    #fig.tight_layout()
     fig.savefig("ComputeMag: Results", dpi=600)
     # h5data.close()
 
@@ -1182,7 +1190,7 @@ def predict(
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 # test_one(cp,chp,hp)
-compute_magnitude(cp, chp, hp, ip, wp, wpa)
+#compute_magnitude(cp, chp, hp, ip, wp, wpa)
 # rsme_timespan(cp, chp, hp)
 # predtrue_s_waves(cp, chp, hp)
 # predtrue_timespan(cp, chp, hp)
@@ -1197,6 +1205,9 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_path", type=str)
     parser.add_argument("--hparams_file", type=str)
     parser.add_argument("--timespan", type=list)
+    parser.add_argument("--inventory",type = str)
+    parser.add_argument("--waveform_path",type = str)
+    parser.add_argument("--waveform_path_add",type = str)
     args = parser.parse_args()
     action = args.action
     if action == "test_one":
@@ -1205,6 +1216,15 @@ if __name__ == "__main__":
             checkpoint_path=args.checkpoint_path,
             hdf5_path=args.hdf5_path,
         )
+    if action == "compute_mag":
+        compute_magnitude(
+            catalog_path=args.catalog_path,
+            checkpoint_path=args.checkpoint_path,
+            hdf5_path=args.hdf5_path,
+            inventory = args.inventory,
+            waveform_path = args.waveform_path,
+            waveform_path_add = args.waveform_path_add
+        )        
     if action == "learn":
         learn(
             catalog_path=args.catalog_path,
