@@ -1056,7 +1056,7 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
     # test_catalog = test_catalog[test_catalog["MA"] >= 6]
     # test_catalog = test_catalog[test_catalog["DIST"] <=200000]
-
+    print(max(test_catalog["MA" ]))
     # load scaler
     dist = np.array([1, 600000])
     print(max(test_catalog["DIST"]))
@@ -1602,8 +1602,13 @@ def predict(
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 # test_one(cp,chp,hp)
+<<<<<<< HEAD
 # compute_magnitude(cp, chp, hp, ip, wp, wpa)
 # mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
+=======
+#compute_magnitude(cp, chp, hp, ip, wp, wpa)
+#mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
+>>>>>>> Plot function updates
 # rsme_timespan(cp, chp, hp)
 # predtrue_s_waves(cp, chp, hp)
 # predtrue_timespan(cp, chp, hp)
@@ -1638,7 +1643,16 @@ if __name__ == "__main__":
             inventory = args.inventory,
             waveform_path = args.waveform_path,
             waveform_path_add = args.waveform_path_add
-        )        
+        )   
+    if action == "predtrue_mag":
+        mag_predtrue_timespan(
+            catalog_path=args.catalog_path,
+            checkpoint_path=args.checkpoint_path,
+            hdf5_path=args.hdf5_path,
+            inventory = args.inventory,
+            waveform_path = args.waveform_path,
+            waveform_path_add = args.waveform_path_add
+        )  
     if action == "learn":
         learn(
             catalog_path=args.catalog_path,
