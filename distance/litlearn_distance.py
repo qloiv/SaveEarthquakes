@@ -332,6 +332,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     # else:
     #     fig.savefig("Distance:PredVSTrue2", dpi=600)
     #     # Plot with differentiation between S and no S Arrivals
+
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
     fig.suptitle(
@@ -358,7 +359,6 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         marker="s",
         lw=0,
         alpha=0.5,
-        #label="Recordings without a S-Wave arrival",
     )
 
     x = np.array(true_s) / 1000
@@ -380,7 +380,6 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         marker="D",
         lw=0,
         alpha=0.5,
-        #label="Recordings in which there is a S-Wave arrival",
     )
     if timespan is not None:
         axs.legend(
@@ -389,8 +388,6 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
             fontsize=7,
             title_fontsize=8,
         )
-    else:
-        axs.legend(loc=0)
     axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
     plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
@@ -404,10 +401,10 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
     if timespan is not None:
         fig.savefig(
-            "Distance:PredVSTrue3_" + str(timespan).replace(".", "_") + "sec", dpi=600
+            "Distance:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600
         )
     else:
-        fig.savefig("Distance:PredVSTrue3", dpi=600)
+        fig.savefig("Distance:PredVSTrue", dpi=600)
     # Plot without differentiation
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
@@ -426,7 +423,14 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     z *= len(x) / z.max()
 
     a = axs.scatter(
-        x, y, c=z, cmap=cm, s=2, marker="o", alpha=0.05, label="Test set recordings"
+        x,
+        y,
+        c=z,
+        cmap=cm,
+        s=0.2,
+        marker="s",
+        lw=0,
+        alpha=0.5,
     )
 
     if timespan is not None:
@@ -436,8 +440,6 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
             fontsize=8,
             title_fontsize=8,
         )
-    else:
-        axs.legend(loc=0)
     axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
     plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
@@ -566,7 +568,7 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
             true = true[true != true[0]]
             true_s = true_s[true_s != true_s[0]]
 
-            # scale back to km
+            # scale back to m
             learn_scaled = torch.add(torch.mul(learn, distmax), distmin)
             learn_s_scaled = torch.add(torch.mul(learn_s, distmax), distmin)
             # variance_scaled = torch.add(torch.mul(var, 600000), 1)
@@ -607,7 +609,7 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
         np.array(rsme) / 1000,
         linewidth=0.7,
         label="All recordings",
-        color="lime",
+        color="springgreen",
     )
     axs.legend(fontsize=8, loc="best")
     plt.xlabel("Time after P-Wave arrival[sec]", fontsize=8)
@@ -616,25 +618,23 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
 
 
 def test_one(catalog_path, checkpoint_path, hdf5_path):
-    print("hey")
+
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test_catalog))
-    print(idx)
     event, station, distance, p, s = test_catalog.iloc[idx][
         ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
     ]
 
     dist = np.array([1, 600000])
-    print(max(test_catalog["DIST"]))
+    # print(max(test_catalog["DIST"]))
     assert max(test_catalog["DIST"]) <= 600000
     assert min(test_catalog["DIST"]) >= 1
     scaler = MinMaxScaler()
     scaler.fit(dist.reshape(-1, 1))
     ts_dist = scaler.transform(distance.reshape(1, -1))
     label = np.float32(ts_dist.squeeze())
-    print(label)
     # load network
     split_key = "test_files"
     file_path = hdf5_path
@@ -663,14 +663,14 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[0].plot(raw_waveform[0], "r")
     axs[1].plot(raw_waveform[1], "b")
     axs[2].plot(raw_waveform[2], "g")
-    fig.savefig("TestOne:Full Trace")
+    #fig.savefig("TestOne:Full Trace")
 
     fig, axs = plt.subplots(3)
     fig.suptitle("Input to Network")
     axs[0].plot(waveform[0], "r")
     axs[1].plot(waveform[1], "b")
     axs[2].plot(waveform[2], "g")
-    fig.savefig("TestOne: Input")
+    #fig.savefig("TestOne: Input")
     d0 = obspy_detrend(waveform[0])
     d1 = obspy_detrend(waveform[1])
     d2 = obspy_detrend(waveform[2])
@@ -679,7 +679,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[0].plot(d0, "r")
     axs[1].plot(d1, "b")
     axs[2].plot(d2, "g")
-    fig.savefig("TestOne:Detrended")
+    #fig.savefig("TestOne:Detrended")
 
     filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
     f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
@@ -697,7 +697,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[0].plot(f0, "r")
     axs[1].plot(f1, "b")
     axs[2].plot(f2, "g")
-    fig.savefig("TestOne:Detrended and Filtered")
+    #fig.savefig("TestOne:Detrended and Filtered")
     waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
     fig, axs = plt.subplots(3)
@@ -705,7 +705,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[0].plot(waveform[0], "r")
     axs[1].plot(waveform[1], "b")
     axs[2].plot(waveform[2], "g")
-    fig.savefig("TestOne: Detrended, Filtered and Normalized")
+    #fig.savefig("TestOne: Detrended, Filtered and Normalized")
 
     station_stream = torch.from_numpy(waveform[None])
     outputs = model(station_stream)
@@ -720,77 +720,84 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     r_sigma = scaler.inverse_transform(sigma.reshape(1, -1))[0]
     print(r_learned, r_sigma)
 
-    fig, axs = plt.subplots(5, sharex=True)
-    # axs[4].yaxis.set_major_formatter(FormatStrFormatter('%d'))
+    fig, axs = plt.subplots(2, sharex=True)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[0].tick_params(axis="both", labelsize=8)
+
     fig.suptitle(
-        "Target:~"
-        + str(int(distance / 1000))
-        + "km, learned value:~"
-        + str(int(r_learned / 1000))
-        + "km\n 68% conf to be between "
-        + str(int((r_learned + r_sigma) / 1000))
-        + "km and "
-        + str(int((r_learned - r_sigma) / 1000))
-        + "km, S-Pick included:"
-        + str(spick)
+        "Predicted and real distance on one input sample. Includes uncertainty levels of 68% confidence.", fontsize=8
     )
 
-    axs[0].plot(waveform[0], "r")
+    axs[1].set_xlabel("Time[sec]", fontsize=8)
+    axs[1].set_ylabel("Distance[km]", fontsize=8)
+    axs[0].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
 
-    axs[1].plot(waveform[1], "b")
+    axs[0].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
+    axs[1].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
 
-    axs[2].plot(waveform[2], "g")
+    axs[0].set_title(
+        "Normalized and filtered input for Z(blue), N(orange) and E(green)",
+        fontdict={"fontsize": 8},
+    )
 
-    axs[3].axhline(label, color="black", linestyle="dashed")
-    axs[3].axhline(learned, color="green", alpha=0.7)
-    axs[3].axhline(learned + 3 * sigma, color="green", alpha=0.001, linewidth=0.001)
-    axs[3].axhline(learned - 3 * sigma, color="green", alpha=0.001, linewidth=0.001)
-
+    # axs[1,0].axvline(random_point, color="black")
+    # axs[2,0].axvline(random_point, color="black")
+    axs[1].set_title("Predicted and real distance", fontdict={"fontsize": 8})
     t = np.linspace(1, 2000, num=2000)
-    var1 = learned + var
-    var2 = learned - var
-    print(t, learned)
-    axs[3].fill_between(t, learned, learned + 3 * sigma, alpha=0.01, color="green")
-    axs[3].fill_between(t, learned, learned - 3 * sigma, alpha=0.01, color="green")
-    axs[3].fill_between(t, learned, learned + 2 * sigma, alpha=0.2, color="green")
-    axs[3].fill_between(t, learned, learned - 2 * sigma, alpha=0.2, color="green")
-    axs[3].fill_between(t, learned, learned + sigma, alpha=0.4, color="green")
-    axs[3].fill_between(t, learned, learned - sigma, alpha=0.4, color="green")
+
+    axs[1].axhline(distance, color="darkgreen", linestyle="dashed", linewidth=1)
+    axs[1].axhline(r_learned, color="seagreen", alpha=1, linewidth=0.7)
+    axs[1].fill_between(t, r_learned, r_learned + r_sigma, alpha=0.4, color="seagreen", linewidth=0.5)
+    axs[1].fill_between(t, r_learned, r_learned - r_sigma, alpha=0.4, color="seagreen", linewidth=0.5)
+    xmin, xmax = axs[1].get_xlim()
+    axs[1].annotate("Real distance(" + str(np.round(distance / 1000, decimals=2)) + ")", xy=(xmin, distance),
+                    xytext=(2, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6)
+    axs[1].annotate("Predicted distance(" + str(np.round(r_learned[0] / 1000, decimals=2)) + ")", xy=(xmin, r_learned),
+                    xytext=(2, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6)
+
+    #
+    # xt = axs[2].get_xticks()
+    # xt = np.append(xt, random_point)
+    #
+    # xtl = xt.tolist()
+    # xtl[-1] = "P-Pick"
+    # axs[2].set_xticks(xt)
+    # axs[2].set_xticklabels(xtl)
+
+    ymin, ymax = axs[0].get_ylim()
+    axs[0].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    ymin, ymax = axs[1].get_ylim()
+    axs[1].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+
+    if spick:
+        ymin, ymax = axs[0].get_ylim()
+        axs[0].annotate("S-Pick", xy=(random_point + (s - p) * 100, ymin), xytext=(-4, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+        ymin, ymax = axs[1].get_ylim()
+        axs[1].annotate("S-Pick", xy=(random_point + (s - p) * 100, ymin), xytext=(-4, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+
+        axs[0].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dotted", linewidth=0.5
+        )
+        axs[1].axvline(
+            random_point + (s - p) * 100, color="red", linestyle="dotted", linewidth=0.5
+        )
 
     scale_y = 1000  # metres to km
     ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
-    axs[4].yaxis.set_major_formatter(ticks_y)
-    axs[4].axhline(distance, color="black", linestyle="dashed")
-    axs[4].axhline(r_learned, color="green", alpha=0.7)
-    print(r_learned, r_learned + 3 * r_sigma)
-    axs[4].fill_between(
-        t, r_learned, r_learned + 3 * r_sigma, alpha=0.01, color="green"
-    )
-    axs[4].fill_between(
-        t, r_learned, r_learned - 3 * r_sigma, alpha=0.01, color="green"
-    )
-    axs[4].fill_between(t, r_learned, r_learned + 2 * r_sigma, alpha=0.2, color="green")
-    axs[4].fill_between(t, r_learned, r_learned - 2 * r_sigma, alpha=0.2, color="green")
-    axs[4].fill_between(t, r_learned, r_learned + r_sigma, alpha=0.4, color="green")
-    axs[4].fill_between(t, r_learned, r_learned - r_sigma, alpha=0.4, color="green")
-    axs[4].axhline(r_learned + 3 * r_sigma, color="green", alpha=0.001, linewidth=0.001)
-    axs[4].axhline(r_learned - 3 * r_sigma, color="green", alpha=0.001, linewidth=0.001)
-
-    axs[0].axvline(random_point, color="black", linestyle="dashed", linewidth=0.5)
-    axs[1].axvline(random_point, color="black", linestyle="dashed", linewidth=0.5)
-    axs[2].axvline(random_point, color="black", linestyle="dashed", linewidth=0.5)
-    if spick:
-        axs[0].axvline(
-            random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5
-        )
-        axs[1].axvline(
-            random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5
-        )
-        axs[2].axvline(
-            random_point + (s - p) * 100, color="red", linestyle="dashed", linewidth=0.5
-        )
-
-    fig.savefig("TestOne: Results")
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    axs[1].yaxis.set_major_formatter(ticks_y)
+    # fig.tight_layout()
+    fig.savefig("TestOne: Results", dpi=600)
     # h5data.close()
 
 
@@ -801,7 +808,7 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     # test_catalog = test_catalog[test_catalog["MA"] >= 6]
     # test_catalog = test_catalog[test_catalog["DIST"] <=200000]
     idx = randrange(0, len(test_catalog))
-    print(idx)
+    #idx = 123
     event, station, distance, p, s, ma = test_catalog.iloc[idx][
         ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK", "MA"]
     ]
@@ -915,7 +922,9 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
         "Predicted and real magnitude, computed from the distance. Includes uncertainty levels.", fontsize=8
     )
 
-    axs[2].set_xlabel("Time in seconds", fontsize=8)
+    axs[2].set_xlabel("Time[sec]", fontsize=8)
+    axs[1].set_ylabel("Distance[km]", fontsize=8)
+    axs[2].set_ylabel("Magnitude", fontsize=8)
     axs[0].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
     axs[0].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
     axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
@@ -939,19 +948,42 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     axs[1].fill_between(t, r_learned, r_learned + r_sigma, alpha=0.4, color="seagreen", linewidth=0.5)
     axs[1].fill_between(t, r_learned, r_learned - r_sigma, alpha=0.4, color="seagreen", linewidth=0.5)
     xmin, xmax = axs[1].get_xlim()
-    axs[1].annotate("Real distance(" + str(np.round(distance / 1000, decimals=2)) + ")", xy=(xmin, distance),
-                    xytext=(2, 2), textcoords='offset points',
-                    annotation_clip=False, fontsize=6)
-    axs[1].annotate("Predicted distance(" + str(np.round(r_learned[0] / 1000, decimals=2)) + ")", xy=(xmin, r_learned),
-                    xytext=(2, 2), textcoords='offset points',
-                    annotation_clip=False, fontsize=6)
+    if distance > r_learned or 10000 > r_learned - distance > 0:
+        axs[1].annotate("Real distance(" + str(np.round(distance / 1000, decimals=2)) + ")", xy=(xmin, distance),
+                        xytext=(2, -6), textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
+    else:
+        axs[1].annotate("Real distance(" + str(np.round(distance / 1000, decimals=2)) + ")", xy=(xmin, distance),
+                        xytext=(2, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
 
-    axs[2].annotate("Real magnitude(" + str(np.round(ma, decimals=2)) + ")", xy=(xmin, ma), xytext=(2, 2),
-                    textcoords='offset points',
-                    annotation_clip=False, fontsize=6)
-    axs[2].annotate("Predicted magnitude(" + str(np.round(mag[0], decimals=2)) + ")", xy=(xmin, mag), xytext=(2, 2),
-                    textcoords='offset points',
-                    annotation_clip=False, fontsize=6)
+    if r_learned - r_sigma > distance or 10 > distance - r_learned > 0:
+        axs[1].annotate("Predicted distance(" + str(np.round(r_learned[0] / 1000, decimals=2)) + ")",
+                        xy=(xmin, r_learned),
+                        xytext=(2, -6), textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
+    else:
+        axs[1].annotate("Predicted distance(" + str(np.round(r_learned[0] / 1000, decimals=2)) + ")",
+                        xy=(xmin, r_learned),
+                        xytext=(2, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
+    if ma > magmax or 0.2 > mag - ma > 0:
+        axs[2].annotate("Real magnitude(" + str(np.round(ma, decimals=2)) + ")", xy=(xmin, ma), xytext=(2, -6),
+                        textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
+    else:
+        axs[2].annotate("Real magnitude(" + str(np.round(ma, decimals=2)) + ")", xy=(xmin, ma), xytext=(2, 2),
+                        textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
+    if magmin > ma or 0.2 > ma - mag > 0:
+        axs[2].annotate("Predicted magnitude(" + str(np.round(mag[0], decimals=2)) + ")", xy=(xmin, mag),
+                        xytext=(2, -6),
+                        textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
+    else:
+        axs[2].annotate("Predicted magnitude(" + str(np.round(mag[0], decimals=2)) + ")", xy=(xmin, mag), xytext=(2, 2),
+                        textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
 
     ymin, ymax = axs[2].get_ylim()
     axs[2].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
@@ -960,7 +992,7 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     axs[2].set_title("Predicted and real magnitude", fontdict={"fontsize": 8})
     axs[2].axhline(ma, color="indigo", linestyle="dashed", linewidth=1)
     axs[2].axhline(mag, color="mediumvioletred", alpha=1, linewidth=0.7)
-    axs[2].axhline(kmag, color="hotpink", alpha=1, linewidth=0.7)
+    #axs[2].axhline(kmag, color="hotpink", alpha=1, linewidth=0.7)
     axs[2].fill_between(t, mag, magmax, alpha=0.4, color="mediumvioletred", linewidth=0.5)
     axs[2].fill_between(t, mag, magmin, alpha=0.4, color="mediumvioletred", linewidth=0.5)
     #
@@ -1011,10 +1043,10 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     # h5data.close()
 
 
-def mag_timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array, inventory):
+def mag_timespan_iteration(catalog_path, checkpoint_path, hdf5_path, inventory, wp, wpa, timespan_array):
     for t in timespan_array:
         t = int(t)
-        predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, t)
+        mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, wp, wpa, t)
 
 
 def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add,
@@ -1165,79 +1197,79 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     magmin = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(
         (np.append(pred, pred_s) - np.append(sig, sig_s)) / 1000) + 5.47
 
-    # Plot with differentiation between S and no S Arrivals
-    fig, axs = plt.subplots(1)
-    axs.tick_params(axis="both", labelsize=8)
-    fig.suptitle(
-        "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival",
-        fontsize=10,
-    )
-
-    x = np.array(magnitude)
-    y = 0.44 * np.log(peak) + 0.32 * np.log((pred) / 1000) + 5.47
-    xy = np.vstack([x, y])
-    z = gaussian_kde(xy)(xy)
-    # Sort the points by density, so that the densest points are plotted last
-    idx = z.argsort()
-    cm = plt.cm.get_cmap("Blues")
-    x, y, z = x[idx], y[idx], z[idx]
-    a = axs.scatter(
-        x,
-        y,
-        c=z,
-        cmap=cm,
-        s=0.2,
-        marker="s",
-        lw=0,
-        alpha=3,
-        # label="Recordings without a S-Wave arrival",
-    )
-
-    x = np.array(magnitude_s)
-    y = 0.44 * np.log(peak_s) + 0.32 * np.log((pred_s) / 1000) + 5.47
-    xy = np.vstack([x, y])
-    z = gaussian_kde(xy)(xy)
-    idx = z.argsort()
-    x, y, z = x[idx], y[idx], z[idx]
-
-    cm = plt.cm.get_cmap("Oranges")
-    z *= len(x) / z.max()
-
-    b = axs.scatter(
-        x,
-        y,
-        s=0.2,
-        c=z,
-        cmap=cm,
-        marker="D",
-        lw=0,
-        alpha=3,
-        # label="Recordings in which there is a S-Wave arrival",
-    )
-    if timespan is not None:
-        axs.legend(
-            title=str(timespan) + " seconds after P-Wave arrival",
-            loc="best",
-            fontsize=7,
-            title_fontsize=8,
-        )
-    axs.axline((0, 0), (9, 9), linewidth=0.3, color="black")
-    plt.axis("square")
-    plt.xlabel("True magnitude", fontsize=8)
-    plt.ylabel("Predicted magnitude", fontsize=8)
-    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # ac.ax.shrink = 0.8
-    ac.ax.tick_params(labelsize=8)
-    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
-    bc = fig.colorbar(b)
-    bc.ax.tick_params(labelsize=8)
-    bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
-    if timespan is not None:
-        fig.savefig(
-            "SelfMagnitude:PredVSTrue2_" + str(timespan).replace(".", "_") + "sec", dpi=600
-        )
-    else:
-        fig.savefig("SelfMagnitude:PredVSTrue2", dpi=600)
+    # # Plot with differentiation between S and no S Arrivals
+    # fig, axs = plt.subplots(1)
+    # axs.tick_params(axis="both", labelsize=8)
+    # fig.suptitle(
+    #     "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival",
+    #     fontsize=10,
+    # )
+    #
+    # x = np.array(magnitude)
+    # y = 0.44 * np.log(peak) + 0.32 * np.log((pred) / 1000) + 5.47
+    # xy = np.vstack([x, y])
+    # z = gaussian_kde(xy)(xy)
+    # # Sort the points by density, so that the densest points are plotted last
+    # idx = z.argsort()
+    # cm = plt.cm.get_cmap("Blues")
+    # x, y, z = x[idx], y[idx], z[idx]
+    # a = axs.scatter(
+    #     x,
+    #     y,
+    #     c=z,
+    #     cmap=cm,
+    #     s=0.2,
+    #     marker="s",
+    #     lw=0,
+    #     alpha=3,
+    #     # label="Recordings without a S-Wave arrival",
+    # )
+    #
+    # x = np.array(magnitude_s)
+    # y = 0.44 * np.log(peak_s) + 0.32 * np.log((pred_s) / 1000) + 5.47
+    # xy = np.vstack([x, y])
+    # z = gaussian_kde(xy)(xy)
+    # idx = z.argsort()
+    # x, y, z = x[idx], y[idx], z[idx]
+    #
+    # cm = plt.cm.get_cmap("Oranges")
+    # z *= len(x) / z.max()
+    #
+    # b = axs.scatter(
+    #     x,
+    #     y,
+    #     s=0.2,
+    #     c=z,
+    #     cmap=cm,
+    #     marker="D",
+    #     lw=0,
+    #     alpha=3,
+    #     # label="Recordings in which there is a S-Wave arrival",
+    # )
+    # if timespan is not None:
+    #     axs.legend(
+    #         title=str(timespan) + " seconds after P-Wave arrival",
+    #         loc="best",
+    #         fontsize=7,
+    #         title_fontsize=8,
+    #     )
+    # axs.axline((0, 0), (9, 9), linewidth=0.3, color="black")
+    # plt.axis("square")
+    # plt.xlabel("True magnitude", fontsize=8)
+    # plt.ylabel("Predicted magnitude", fontsize=8)
+    # ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # # ac.ax.shrink = 0.8
+    # ac.ax.tick_params(labelsize=8)
+    # ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+    # bc = fig.colorbar(b)
+    # bc.ax.tick_params(labelsize=8)
+    # bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
+    # if timespan is not None:
+    #     fig.savefig(
+    #         "SelfMagnitude:PredVSTrue2_" + str(timespan).replace(".", "_") + "sec", dpi=600
+    #     )
+    # else:
+    #     fig.savefig("SelfMagnitude:PredVSTrue2", dpi=600)
 
     # Plot with differentiation between S and no S Arrivals
     fig, axs = plt.subplots(1)
@@ -1272,9 +1304,11 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     y = 0.44 * np.log(peak_s) + 0.32 * np.log((pred_s) / 1000) + 5.47
     xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
+
     idx = z.argsort()
-    x, y, z = x[idx], y[idx], z[idx]
     cm = plt.cm.get_cmap("spring")
+    x, y, z = x[idx], y[idx], z[idx]
+    z *= len(x) / z.max()
 
     b = axs.scatter(
         x,
@@ -1328,6 +1362,8 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     idx = z.argsort()
     cm = plt.cm.get_cmap("plasma")
     x, y, z = x[idx], y[idx], z[idx]
+    z *= len(x) / z.max()
+
     a = axs.scatter(
         x,
         y,
@@ -1350,6 +1386,7 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     # ac.ax.shrink = 0.8
     ac.ax.tick_params(labelsize=8)
     axs.axline((0, 0), (9, 9), linewidth=0.5, color="black")
+    ac.ax.set_ylabel('Number of points', fontsize=8)
     plt.axis("square")
     plt.xlabel("True magnitude", fontsize=8)
     plt.ylabel("Predicted magnitude", fontsize=8)
@@ -1447,23 +1484,14 @@ def predict(
         real_output[i + 2000] = scaler.inverse_transform(learned.reshape(1, -1))[0]
         # real_labels[i+2000] = distance
 
-    print(real_output)
+    print(real_output.shape)
     # print(real_labels)
-    print(s_output)
+    print(real_sig.shape)
     # print(s_labels)
     # print(mean_squared_error(real_output, real_labels))
     # print(mean_squared_error(s_output, s_labels))
     t = np.linspace(0, 6000, num=6000)
-    fig, axs = plt.subplots(5, sharex=True)
-    fig.suptitle(
-        "Predict Plot, Distance:~"
-        + str(int(distance / 1000))
-        + "km \nLearned distance ranges from ~"
-        + str(int(min(real_output[2000:]) / 1000))
-        + "km to ~"
-        + str(int(max(real_output[2000:]) / 1000))
-        + "km"
-    )
+
     real_output[0:2000] = np.nan
 
     waveform = np.array(h5data.get(event + "/" + station))
@@ -1487,24 +1515,68 @@ def predict(
     waveform, _ = normalize_stream(waveform)
 
     fig, axs = plt.subplots(2, sharex=True)
-    axs[1].set_xlabel("Time in milliseconds", fontdict={"fontsize": 8})
     fig.suptitle(
-        "Distance prediction plot, the real distance ist about "
-        + str(np.int(distance / 1000))
-        + "km"
+        "Distance prediction for one example. Uncertainty levels show 68% confidence.", fontsize=10
     )
-    axs[0].plot(waveform[0], "r", linewidth=0.5)
-    axs[0].plot(waveform[1], "b", linewidth=0.5)
-    axs[0].plot(waveform[2], "g", linewidth=0.5)
-    axs[0].axvline(3000, color="black", linestyle="dashed", linewidth=0.5)
+    spick = False
     if s and (s - p) < 30:
+        spick = True
+
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[0].tick_params(axis="both", labelsize=8)
+
+    axs[1].set_ylabel("Distance[km]", fontsize=8)
+    axs[0].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+
+    axs[0].axvline(3000, color="black", linestyle="dotted", linewidth=0.5)
+    axs[1].axvline(3000, color="black", linestyle="dotted", linewidth=0.5)
+
+    ymin, ymax = axs[0].get_ylim()
+    axs[0].annotate("P-Pick", xy=(3000, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    # ymin, ymax = axs[1].get_ylim()
+    # axs[1].annotate("P-Pick", xy=(3000, ymin), xytext=(-4, 2), textcoords='offset points',
+    #                 annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+
+    if spick:
+        ymin, ymax = axs[0].get_ylim()
+        axs[0].annotate("S-Pick", xy=(3000 + (s - p) * 100, ymin), xytext=(-4, 2), textcoords='offset points',
+                        annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+        # ymin, ymax = axs[1].get_ylim()
+        # axs[1].annotate("S-Pick", xy=(3000 + (s - p) * 100, ymin), xytext=(-4, 2), textcoords='offset points',
+        #                 annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+
         axs[0].axvline(
-            3000 + (s - p) * 100, color="black", linestyle="dashed", linewidth=0.5
+            3000 + (s - p) * 100, color="red", linestyle="dotted", linewidth=0.5
         )
+        axs[1].axvline(
+            3000 + (s - p) * 100, color="red", linestyle="dotted", linewidth=0.5
+        )
+
     axs[0].set_title(
-        "Normalized and filtered input for Z(red), N(blue) and E(green) with P-pick (and S-Pick, if there)",
+        "Normalized and filtered input for Z(blue), N(orange) and E(green)",
         fontdict={"fontsize": 8},
     )
+    t = np.linspace(1, 6000, num=6000)
+    scale_y = 1000  # metres to km
+    ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    axs[1].yaxis.set_major_formatter(ticks_y)
+    # fig.tight_layout()
+
+    axs[1].axhline(distance, color="darkgreen", linestyle="dashed", linewidth=0.7)
+    axs[1].plot(real_output, color="seagreen", alpha=1, linewidth=0.7)
+    axs[1].fill_between(t, real_output, real_output + real_sig, alpha=0.4, color="seagreen", linewidth=0.5)
+    axs[1].fill_between(t, real_output, real_output - real_sig, alpha=0.4, color="seagreen", linewidth=0.5)
+    xmin, xmax = axs[1].get_xlim()
+    axs[1].annotate("Real distance(" + str(np.round(distance / 1000, decimals=2)) + ")", xy=(xmin, distance),
+                    xytext=(2, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6)
 
     # axs[1,0].axvline(random_point, color="black")
     # axs[2,0].axvline(random_point, color="black")
@@ -1518,20 +1590,9 @@ def predict(
 
     scale_y = 1000  # metres to km
     ticks_y = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_y))
-    axs[1].set_ylabel("Distance in km", fontdict={"fontsize": 8})
-    axs[1].set_title("Distance and standard deviation", fontdict={"fontsize": 8})
+    axs[1].set_ylabel("Distance[km]", fontdict={"fontsize": 8})
+    axs[1].set_title("Predicted distance and uncertainty", fontdict={"fontsize": 8})
     axs[1].yaxis.set_major_formatter(ticks_y)
-    axs[1].axhline(distance, color="black", linestyle="dashed")
-    axs[1].plot(t, real_output, color="green", alpha=0.7, linewidth=0.7)
-    # axs[4].plot(t,real_output+real_sig, color = "green", alpha = 0.3)
-    # axs[4].plot(t,real_output-real_sig, color = "green", alpha = 0.3)
-    axs[1].fill_between(
-        t, real_output, real_output + real_sig, alpha=0.3, color="green"
-    )
-    axs[1].fill_between(
-        t, real_output, real_output - real_sig, alpha=0.3, color="green"
-    )
-
     fig.tight_layout()
     fig.savefig("Prediction Plot", dpi=600)
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
@@ -1541,13 +1602,14 @@ def predict(
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
 # predict(cp, hp, chp)
 # test_one(cp,chp,hp)
-#compute_magnitude(cp, chp, hp, ip, wp, wpa)
-mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
+# compute_magnitude(cp, chp, hp, ip, wp, wpa)
+# mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
 # rsme_timespan(cp, chp, hp)
 # predtrue_s_waves(cp, chp, hp)
 # predtrue_timespan(cp, chp, hp)
 # timespan_iteration(cp, chp, hp, timespan_array=[8, 16])
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
+# mag_timespan_iteration(catalog_path=cp,timespan_array=[8,16],hdf5_path=hp,wp=wp,wpa=wpa,checkpoint_path=chp,inventory=ip)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
