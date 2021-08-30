@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import argparse
 import os
 from random import randrange
+import datetime
 
 import h5py
 import matplotlib.pyplot as plt
@@ -33,6 +34,12 @@ chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-
 hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
 ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 
+cp = "../../new_catalogue_sensitivity.csv"
+wp = "../../../data/earthquake/waveforms_long_full/"
+wpa ="../../../data/earthquake/waveforms_long_additional/"
+hp = "../../new_h5data_sensitivity.h5"
+chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
+ip = "../../inventory.xml"
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
 # hparams_file = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/hparams.yaml",
@@ -797,7 +804,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     axs[1].xaxis.set_major_formatter(ticks_x)
     axs[1].yaxis.set_major_formatter(ticks_y)
     # fig.tight_layout()
-    fig.savefig("TestOne: Results", dpi=600)
+    fig.savefig("TestOne: Results"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), dpi=600)
     # h5data.close()
 
 
@@ -884,9 +891,13 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
         o_raw_waveform = obspy.read(os.path.join(waveform_path, f"{event}.mseed"))
 
     o_waveform = o_raw_waveform.select(station=station, channel="HHZ")
+    time_after = np.float(seq_len-random_point)/100
+    print(time_after, random_point)
+    slice_after = min(time_after,3.99)
+    print(slice_after)
     o_station_stream = o_waveform.slice(
         starttime=UTCDateTime(p),  #
-        endtime=UTCDateTime(p) + 3.99,
+        endtime=UTCDateTime(p) + slice_after,
     )  # -0.01 deletes the last item, therefore enforcing array indexing
 
     # load inventory
@@ -902,6 +913,8 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     peakdisp = 100 * np.max(np.abs(disp_w30))  # already returns absolute maximum amplitude
     print("pd", peakdisp, "dist", r_learned / 1000)
     mag = 0.44 * np.log(peakdisp) + 0.32 * np.log(r_learned / 1000) + 5.47
+    if mag < 0:
+        print("mag smaller than zero",mag, peakdisp, r_learned)
     magmax = 0.44 * np.log(peakdisp) + 0.32 * np.log((r_learned + r_sigma) / 1000) + 5.47
     magmin = 0.44 * np.log(peakdisp) + 0.32 * np.log((r_learned - r_sigma) / 1000) + 5.47
     print("pred. mag vs real mag", mag, ma)
@@ -1039,7 +1052,7 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     axs[2].xaxis.set_major_formatter(ticks_x)
     axs[1].yaxis.set_major_formatter(ticks_y)
     # fig.tight_layout()
-    fig.savefig("ComputeMag: Results", dpi=600)
+    fig.savefig("ComputeMag: Results"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), dpi=600)
     # h5data.close()
 
 
@@ -1141,9 +1154,12 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
                 o_raw_waveform = obspy.read(os.path.join(waveform_path, f"{event}.mseed"))
 
             o_waveform = o_raw_waveform.select(station=station, channel="HHZ")
+            time_after = np.float(seq_len-random_point)/100
+            #print(time_after, random_point)
+            slice_after = min(time_after,3.99)
             o_station_stream = o_waveform.slice(
                 starttime=UTCDateTime(p),  #
-                endtime=UTCDateTime(p) + 3.99,
+                endtime=UTCDateTime(p) + slice_after,
             )  # -0.01 deletes the last item, therefore enforcing array indexing
 
             inv_selection = inv.select(station=station, channel="HHZ")
@@ -1192,6 +1208,8 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
         pred_s = scaler.inverse_transform(learn_s.reshape(-1, 1)).squeeze()
 
     mag = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(np.append(pred, pred_s) / 1000) + 5.47
+    assert mag>0
+    print(mag[mag<0],np.array(peak+peak_s)[mag<0],np.append(pred,pred_s)[mag<0])
     magmax = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(
         (np.append(pred, pred_s) + np.append(sig, sig_s)) / 1000) + 5.47
     magmin = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(
@@ -1330,7 +1348,6 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
         )
 
     axs.axline((0, 0), (9, 9), linewidth=0.5, color="black")
-    plt.axis("square")
     plt.xlabel("True magnitude", fontsize=8)
     plt.ylabel("Predicted magnitude", fontsize=8)
     ac = fig.colorbar(a, fraction=0.046, pad=0.04)
@@ -1340,6 +1357,8 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     bc = fig.colorbar(b)
     bc.ax.tick_params(labelsize=8)
     bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
+    plt.axis("square")
+
     if timespan is not None:
         fig.savefig(
             "SelfMagnitude:PredVSTrue1_" + str(timespan).replace(".", "_") + "sec", dpi=600
@@ -1600,21 +1619,15 @@ def predict(
 
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
-# predict(cp, hp, chp)
-# test_one(cp,chp,hp)
-<<<<<<< HEAD
-# compute_magnitude(cp, chp, hp, ip, wp, wpa)
-# mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
-=======
-#compute_magnitude(cp, chp, hp, ip, wp, wpa)
-#mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
->>>>>>> Plot function updates
-# rsme_timespan(cp, chp, hp)
-# predtrue_s_waves(cp, chp, hp)
-# predtrue_timespan(cp, chp, hp)
-# timespan_iteration(cp, chp, hp, timespan_array=[8, 16])
-# test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
-# mag_timespan_iteration(catalog_path=cp,timespan_array=[8,16],hdf5_path=hp,wp=wp,wpa=wpa,checkpoint_path=chp,inventory=ip)
+predict(cp, hp, chp)
+test_one(cp,chp,hp)
+compute_magnitude(cp, chp, hp, ip, wp, wpa)
+mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
+rsme_timespan(cp, chp, hp)
+predtrue_timespan(cp, chp, hp)
+timespan_iteration(cp, chp, hp, timespan_array=[2,4,8,16])
+#test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
+mag_timespan_iteration(catalog_path=cp,timespan_array=[2,4,8,16],hdf5_path=hp,wp=wp,wpa=wpa,checkpoint_path=chp,inventory=ip)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
