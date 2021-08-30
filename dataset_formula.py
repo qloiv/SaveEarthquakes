@@ -36,24 +36,26 @@ def normalize_stream(stream, global_max=False):
 
 
 # cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
-# wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
 # hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 # mp = "/home/viola/WS2021/Code/Models"
 # chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
 # hf = "/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",
-# ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
-cp = "../new_catalogue_sensitivity.csv"
-wp = "../../data/earthquake/waveforms_long_full"
+ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
+# cp = "../new_catalogue_sensitivity.csv"
+# wp = "../../data/earthquake/waveforms_long_full"
 wp2 = "../../data/earthquake/waveforms_long_additional"
-ip = "../inventory.xml"
+
+
+# ip = "../inventory.xml"
 
 
 def formulate(x, train_catalog):
     # load train catalog
-    catalog_path = cp
+    # catalog_path = cp
     # hdf5_path = hp
     waveform_path = wp
-    waveform_path_add = wp2
+    waveform_path_add = wp
     inv_path = ip
 
     #    split_key = "train_files"
@@ -100,11 +102,12 @@ def formulate(x, train_catalog):
     # disp_w30.plot()
     m = np.max(np.abs(disp_w30))  # already returns absolute maximum amplitude
     # print(m*100)
+    # assert(m>=0)
     return (m * 100, distance, magnitude)
 
 
-pool = Pool(35)
-catalog_path = "../new_catalogue_sensitivity.csv"
+pool = Pool(4)
+catalog_path = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
 catalog = pd.read_csv(catalog_path)
 train_catalog = catalog[catalog["SPLIT"] == "TRAIN"]
 len_train = len(train_catalog)
@@ -113,5 +116,5 @@ results = [
     for x in tqdm(np.arange(0, len_train))
 ]
 output = [p.get() for p in tqdm(results)]
-np.save("/project/SaveEarthquakes/output.npy", output)
 print(output)
+np.save("output2.npy", output)

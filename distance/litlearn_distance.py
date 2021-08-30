@@ -1,9 +1,9 @@
 from __future__ import print_function, division
 
 import argparse
+import datetime
 import os
 from random import randrange
-import datetime
 
 import h5py
 import matplotlib.pyplot as plt
@@ -1613,7 +1613,7 @@ def predict(
     axs[1].set_title("Predicted distance and uncertainty", fontdict={"fontsize": 8})
     axs[1].yaxis.set_major_formatter(ticks_y)
     fig.tight_layout()
-    fig.savefig("Prediction Plot", dpi=600)
+    fig.savefig("DIST:Prediction Plot" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), dpi=600)
     # plt.plot(t,mean_squared_error(s_output,s_labels),":")
     # h5data.close()
 
