@@ -19,15 +19,27 @@ from datasets_detection import obspy_detrend, normalize_stream
 from litdatamodule_detection import LitDataModule
 from litnetwork_detection import LitNetwork
 
-cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+
+cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
+wpa = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 mp = "/home/viola/WS2021/Code/Models"
+chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
+hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
+ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
+
+cp = "../../new_catalogue_sensitivity.csv"
+wp = "../../../data/earthquake/waveforms_long_full/"
+wpa ="../../../data/earthquake/waveforms_long_additional/"
+hp = "../../new_h5data_sensitivity.h5"
+chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
+ip = "../../inventory.xml"
 
 
 def learn(catalog_path, hdf5_path, model_path):
     network = LitNetwork()
-    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=128)
+    dm = LitDataModule(catalog_path=catalog_path, hdf5_path=hdf5_path, batch_size=1024)
     logger = TensorBoardLogger("../tb_logs", name="detection")
     trainer = pl.Trainer(
         gpus=[0],
@@ -49,7 +61,7 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
         hparams_file=hparams_file,
         map_location=None,
     )
-    dm = LitDataModule(catalog_path, hdf5_path, batch_size=128)
+    dm = LitDataModule(catalog_path, hdf5_path, batch_size=1024)
     # init trainer with whatever options
     trainer = pl.Trainer(gpus=[0])
 
@@ -747,11 +759,11 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
 #    inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml",
 # )
 
-# learn(cp, hp, mp)
-# predict(catalog_path=cp, hdf5_path=hp,
-# checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
+learn(cp, hp, mp)
+predict(catalog_path=cp, hdf5_path=hp,
+checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
 # test(catalog_path=cp,hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt",hparams_file="../tb_logs/detection/version_2/hparams.yaml")
-# test_one(catalog_path=cp, hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
+test_one(catalog_path=cp, hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)

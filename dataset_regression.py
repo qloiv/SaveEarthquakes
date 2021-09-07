@@ -29,6 +29,15 @@ print("logPD ",np.log10(pd),min(np.log10(pd)),max(np.log10(pd)))
 print("logDist", np.log10(dist),min(np.log10(dist)),max(np.log10(dist)))
 #plt.scatter(1.01*np.log10(pd),mag, c = 0.74*np.log10(dist))
 #plt.savefig("regression.png")
-plt.hist(ma, bins = 10)
-plt.hist(mag, bins = 10)
-plt.savefig("mag.png")
+#plt.hist(ma, bins = 50)
+#plt.hist(mag, bins = 50)
+#plt.savefig("mag.png")
+plt.scatter(ma,np.log10(pd),c = np.log10(dist))
+a = 1.01 * np.log10(pd) + 0.74 * np.log10(50) + 5.47
+b= 1.01 * np.log10(pd) + 0.74 * np.log10(100) + 5.47
+c= 1.01 * np.log10(pd) + 0.74 * np.log10(200) + 5.47
+print(a,b,c)
+plt.plot(a,np.log10(pd))
+plt.plot(b,np.log10(pd))
+plt.plot(c,np.log10(pd))
+plt.savefig("pdvsma")

@@ -23,20 +23,26 @@ from datasets_magnitude import normalize_stream, obspy_detrend
 from litdatamodule_magnitude import LitDataModule
 from litnetwork_magnitude import LitNetwork
 
-# cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
-# wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-# wpa = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-# hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
-# mp = "/home/viola/WS2021/Code/Models"
-# chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
-# hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
-# ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
-
-cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
+wpa = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 mp = "/home/viola/WS2021/Code/Models"
-chp = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/magnitude/version_76/checkpoints/epoch=5-step=95.ckpt"
+chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
+hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
+ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
+
+#cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+#wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+#hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
+#mp = "/home/viola/WS2021/Code/Models"
+#chp = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/magnitude/version_76/checkpoints/epoch=5-step=95.ckpt"
+cp = "../../new_catalogue_sensitivity.csv"
+wp = "../../../data/earthquake/waveforms_long_full/"
+wpa ="../../../data/earthquake/waveforms_long_additional/"
+hp = "../../new_h5data_sensitivity.h5"
+chp = "../tb_logs/magnitude/version_26/checkpoints/epoch=353-step=412055.ckpt"
+ip = "../../inventory.xml"
 
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
@@ -101,6 +107,9 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     model.freeze()
 
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    above = True
+    if above is True:
+        test_catalog=test_catalog[test_catalog["MA"]>=5]
     idx = randrange(0, len(test_catalog))
     event, station, ma, s, p = test_catalog.iloc[idx][["EVENT", "STATION", "MA", "S_PICK", "P_PICK"]]
     print("MA", ma)
@@ -251,7 +260,9 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-
+    above = True
+    if above is True:
+        test_catalog=test_catalog[test_catalog["MA"]>=5]
     split_key = "test_files"
     file_path = hdf5_path
     h5data = h5py.File(file_path, "r").get(split_key)
@@ -357,10 +368,11 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
 
         learn_s = learn_s.cpu()
         # var_s = var_s.cpu()
-
-        # if learn_s.shape != torch.Size([1]):  # no element was added during loop
-        learn_s = np.delete(learn_s, 0)
-        pred_s = scaler.inverse_transform(learn_s.reshape(-1, 1)).squeeze()
+        swaves=False
+        if learn_s.shape != torch.Size([1]):  # no element was added during loop
+            learn_s = np.delete(learn_s, 0)
+            pred_s = scaler.inverse_transform(learn_s.reshape(-1, 1)).squeeze()
+            swaves=True
 
     # if learn_s.shape == 0:
     #    rsmes = np.round(mean_squared_error(np.array(true_s) / 1000, (pred_s) / 1000, squared=False),
@@ -375,7 +387,11 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival",
         fontsize=10,
     )
-
+    if above is True:
+        fig.suptitle(
+        "Predicted and true magnitude values for magnitudes above 5, \ndifferentiating between recordings with and without a S-Wave arrival",
+        fontsize=10,
+    )   
     x = np.array(true)
     y = pred
     xy = np.vstack([x, y])
@@ -396,27 +412,31 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         lw=0,
         alpha=0.5,
     )
+    if swaves is True:
+        x = np.array(true_s)
+        y = pred_s
+        xy = np.vstack([x, y])
+        z = gaussian_kde(xy)(xy)
+        idx = z.argsort()
+        x, y, z = x[idx], y[idx], z[idx]
 
-    x = np.array(true_s)
-    y = pred_s
-    xy = np.vstack([x, y])
-    z = gaussian_kde(xy)(xy)
-    idx = z.argsort()
-    x, y, z = x[idx], y[idx], z[idx]
+        cm = plt.cm.get_cmap("cividis")
+        z *= len(x) / z.max()
 
-    cm = plt.cm.get_cmap("cividis")
-    z *= len(x) / z.max()
-
-    b = axs.scatter(
-        x,
-        y,
-        s=0.2,
-        c=z,
-        cmap=cm,
-        marker="D",
-        lw=0,
-        alpha=0.5,
-    )
+        b = axs.scatter(
+            x,
+            y,
+            s=0.2,
+            c=z,
+            cmap=cm,
+            marker="D",
+            lw=0,
+            alpha=0.5,
+        )
+        bc = fig.colorbar(b)
+        bc.ax.tick_params(labelsize=8)
+        bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
+        
     if timespan is not None:
         axs.legend(
             title=str(timespan) + " seconds after P-Wave arrival",
@@ -432,15 +452,13 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     # ac.ax.shrink = 0.8
     ac.ax.tick_params(labelsize=8)
     ac.ax.set_ylabel('No S-Waves present', fontsize=8)
-    bc = fig.colorbar(b)
-    bc.ax.tick_params(labelsize=8)
-    bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
+    
     if timespan is not None:
         fig.savefig(
-            "Magnitude:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600
+            "Magnitude:PredVSTrue_" +str(above)+"_" + str(timespan).replace(".", "_") + "sec", dpi=600
         )
     else:
-        fig.savefig("Magnitude:PredVSTrue", dpi=600)
+        fig.savefig("Magnitude:PredVSTrue_" + str(above), dpi=600)
 
     # Plot without differentiation
     fig, axs = plt.subplots(1)
@@ -448,9 +466,14 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     fig.suptitle("Predicted and true magnitude values")
     # " \nRSME = " + str(
     #    rsme), fontsize=10)
-
-    x = np.array(true + true_s)
-    y = np.append(pred, pred_s)
+    if above is True:
+        fig.suptitle("Predicted and true magnitude values for magnitudes above 5")
+    if swaves is True:
+        x = np.array(true + true_s)
+        y = np.append(pred, pred_s)
+    else:
+        x = np.array(true)
+        y = pred       
     xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
@@ -469,7 +492,10 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         lw=0,
         alpha=0.5,
     )
-
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('Number of points', fontsize=8)
     if timespan is not None:
         axs.legend(
             title=str(timespan) + " seconds after P-Wave arrival",
@@ -483,17 +509,20 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     plt.ylabel("Predicted magnitude", fontsize=8)
     if timespan is not None:
         fig.savefig(
-            "Magnitude:PredVSTrue_simple_" + str(timespan).replace(".", "_") + "sec",
+            "Magnitude:PredVSTrue_simple_"+str(above)+"_" + str(timespan).replace(".", "_") + "sec",
             dpi=600,
         )
     else:
-        fig.savefig("Magnitude:PredVSTrue_simple", dpi=600)
+        fig.savefig("Magnitude:PredVSTrue_simple_"+str(above), dpi=600)
 
 
 def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    above = True
+    if above is True:
+        test_catalog=test_catalog[test_catalog["MA"]>=5]
     s_times = test_catalog["S_PICK"]
     p_times = test_catalog["P_PICK"]
     split_key = "test_files"
@@ -628,6 +657,9 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
     fig.suptitle("RSME after the P-arrival depending on S-arrivals", fontsize=10)
+    if above is True:
+        fig.suptitle("RSME after the P-arrival depending on S-arrivals for magnitudes above 5", fontsize=10)
+    
     axs.plot(
         timespan,
         np.array(rsme_p),
@@ -652,14 +684,14 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     axs.legend(fontsize=8, loc="best")
     plt.xlabel("Time after P-Wave arrival[sec]", fontsize=8)
     plt.ylabel("RSME", fontsize=8)
-    fig.savefig("Magnitude:RSME", dpi=600)
+    fig.savefig("Magnitude:RSME_"+str(above), dpi=600)
 
 
 # learn(cp, hp, mp)
-predict(cp, hp, chp)
+#predict(cp, hp, chp)
 
 # predtrue_timespan(catalog_path=cp, checkpoint_path=chp, hdf5_path=hp, timespan = 4)
-# timespan_iteration(cp, chp, hp, timespan_array=[8, 16])
+timespan_iteration(cp, chp, hp, timespan_array=[2,4,8, 16])
 #rsme_timespan(cp,chp,hp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

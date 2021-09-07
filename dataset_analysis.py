@@ -160,7 +160,7 @@ def analyse(cp):
     axes.set_yscale("log")
     plt.xlabel("Magnitude")
     plt.ylabel("Number of Examples")
-    fig2.savefig("histogram_ma.png")
+    fig2.savefig("histogram_ma.png",dpi=600)
 
     fig5 = plt.figure()
     axes = fig5.add_subplot(111)
@@ -168,7 +168,7 @@ def analyse(cp):
     sns.histplot(distances / 1000, bins=100)
     plt.xlabel("Distance in km")
     plt.ylabel("Number of Examples")
-    fig5.savefig("histogram_dist.png")
+    fig5.savefig("histogram_dist.png",dpi=600)
 
     fig6 = plt.figure()
     axes = fig6.add_subplot(111)
@@ -176,7 +176,7 @@ def analyse(cp):
     sns.histplot(depth, bins=100)
     plt.xlabel("Depth in km")
     plt.ylabel("Number of Examples")
-    fig6.savefig("histogram_depth.png")
+    fig6.savefig("histogram_depth.png",dpi=600)
 
     fig7 = plt.figure()
     fig7.suptitle("Distance to Depth Scatterplot")
