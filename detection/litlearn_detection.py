@@ -2,6 +2,7 @@ from __future__ import print_function, division
 
 import argparse
 import os
+from datetime import datetime
 from random import randrange
 
 import h5py
@@ -11,6 +12,7 @@ import obspy
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from matplotlib import ticker
 from obspy import UTCDateTime
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
@@ -18,7 +20,6 @@ from scipy import signal
 from datasets_detection import obspy_detrend, normalize_stream
 from litdatamodule_detection import LitDataModule
 from litnetwork_detection import LitNetwork
-
 
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
@@ -29,12 +30,13 @@ chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-
 hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
 ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 
-cp = "../../new_catalogue_sensitivity.csv"
-wp = "../../../data/earthquake/waveforms_long_full/"
-wpa ="../../../data/earthquake/waveforms_long_additional/"
-hp = "../../new_h5data_sensitivity.h5"
-chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
-ip = "../../inventory.xml"
+
+# cp = "../../new_catalogue_sensitivity.csv"
+# wp = "../../../data/earthquake/waveforms_long_full/"
+# wpa ="../../../data/earthquake/waveforms_long_additional/"
+# hp = "../../new_h5data_sensitivity.h5"
+# chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
+# ip = "../../inventory.xml"
 
 
 def learn(catalog_path, hdf5_path, model_path):
@@ -500,6 +502,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test_catalog))
+    idx = 756
     print(idx)
     event, station, p_pick = test_catalog.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
@@ -519,28 +522,94 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     waveform = raw_waveform[
                :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
                ]
-    fig, axs = plt.subplots(3)
-    fig.suptitle("Input of Detection Network - full Trace")
-    axs[0].plot(raw_waveform[0], "r")
-    axs[1].plot(raw_waveform[1], "b")
-    axs[2].plot(raw_waveform[2], "g")
-    fig.savefig("TestOne:Full Trace")
 
     fig, axs = plt.subplots(3)
-    fig.suptitle("Cut Out Input")
-    axs[0].plot(waveform[0], "r")
-    axs[1].plot(waveform[1], "b")
-    axs[2].plot(waveform[2], "g")
-    fig.savefig("TestOne: Input")
+
+    fig.suptitle("Input for detection network - full trace", fontsize=12)
+    axs[0].plot(raw_waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].plot(raw_waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[2].plot(raw_waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[2].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+    axs[0].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[2].tick_params(axis="both", labelsize=8)
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[0].xaxis.set_major_formatter(ticks_x)
+    axs[0].legend(title="HHZ", title_fontsize=8, loc="upper left", frameon=True, labelspacing=0)
+    axs[1].legend(title="HHN", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[2].legend(title="HHE", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    f = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x, pos: "${}$".format(f._formatSciNotation('%1.10e' % x))
+    axs[0].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[1].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[2].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+
+    fig.savefig("TestOne:Full Trace", dpi=600)
+
+    fig, axs = plt.subplots(3, sharex=True)
+    fig.suptitle("4-second seismogram", fontsize=12)
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[2].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[2].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[0].xaxis.set_major_formatter(ticks_x)
+    axs[0].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[2].tick_params(axis="both", labelsize=8)
+    axs[0].legend(title="HHZ", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[1].legend(title="HHN", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[2].legend(title="HHE", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    f = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x, pos: "${}$".format(f._formatSciNotation('%1.10e' % x))
+    axs[0].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[1].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[2].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+
+    fig.savefig("TestOne: Input", dpi=600)
+
     d0 = obspy_detrend(waveform[0])
     d1 = obspy_detrend(waveform[1])
     d2 = obspy_detrend(waveform[2])
-    fig, axs = plt.subplots(3)
-    fig.suptitle("After Detrending")
-    axs[0].plot(d0, "r")
-    axs[1].plot(d1, "b")
-    axs[2].plot(d2, "g")
-    fig.savefig("TestOne:Detrended")
+
+    fig, axs = plt.subplots(3, sharex=True)
+    fig.suptitle("4-second seismogram after detrending", fontsize=12)
+    axs[0].plot(d0, "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].plot(d1, "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[2].plot(d2, "tab:green", linewidth=0.5, alpha=0.8)
+    axs[2].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+    axs[0].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[2].tick_params(axis="both", labelsize=8)
+    f = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x, pos: "${}$".format(f._formatSciNotation('%1.10e' % x))
+    axs[0].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[1].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[2].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[0].xaxis.set_major_formatter(ticks_x)
+    axs[0].legend(title="HHZ", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[1].legend(title="HHN", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[2].legend(title="HHE", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    fig.savefig("TestOne:Detrended", dpi=600)
 
     # set high pass filter
     sampling_rate = 100
@@ -549,42 +618,138 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
     f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
 
+    fig, axs = plt.subplots(3, sharex=True)
+    fig.suptitle("4-second seismogram after high-pass filtering", fontsize=12)
+    axs[0].plot(f0, "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].plot(f1, "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[2].plot(f2, "tab:green", linewidth=0.5, alpha=0.8)
+    axs[2].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+    axs[0].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[2].tick_params(axis="both", labelsize=8)
+    f = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x, pos: "${}$".format(f._formatSciNotation('%1.10e' % x))
+    axs[0].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[1].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[2].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[0].xaxis.set_major_formatter(ticks_x)
+    axs[0].legend(title="HHZ", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[1].legend(title="HHN", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[2].legend(title="HHE", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    fig.savefig("TestOne:HP-Filtered", dpi=600)
+
     # set low pass filter
     lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
     g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
     g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
     g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
-    fig, axs = plt.subplots(3)
-    fig.suptitle("After Detrending, then Filtering")
-    axs[0].plot(g0, "r")
-    axs[1].plot(g1, "b")
-    axs[2].plot(g2, "g")
-    fig.savefig("TestOne:Detrended and Filtered")
+
+    fig, axs = plt.subplots(3, sharex=True)
+    fig.suptitle("4-second seismogram after low-pass filtering", fontsize=12)
+    axs[0].plot(g0, "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].plot(g1, "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[2].plot(g2, "tab:green", linewidth=0.5, alpha=0.8)
+    axs[2].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+    axs[0].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[2].tick_params(axis="both", labelsize=8)
+    f = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x, pos: "${}$".format(f._formatSciNotation('%1.10e' % x))
+    axs[0].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[1].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[2].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[0].xaxis.set_major_formatter(ticks_x)
+    axs[0].legend(title="HHZ", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[1].legend(title="HHN", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[2].legend(title="HHE", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    fig.savefig("TestOne:LP-Filtered", dpi=600)
+
     waveform = np.stack((g0, g1, g2))
     waveform, _ = normalize_stream(waveform)
-    fig, axs = plt.subplots(3)
-    fig.suptitle("After Detrending->Filtering->Normalizing")
-    axs[0].plot(waveform[0], "r")
-    axs[1].plot(waveform[1], "b")
-    axs[2].plot(waveform[2], "g")
-    fig.savefig("TestOne: Detrended, Filtered and Normalized")
+
+    fig, axs = plt.subplots(3, sharex=True)
+    fig.suptitle("4-second seismogram after normalizing", fontsize=12)
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[2].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[2].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+    axs[0].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[2].tick_params(axis="both", labelsize=8)
+    f = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x, pos: "${}$".format(f._formatSciNotation('%1.10e' % x))
+    axs[0].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[1].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[2].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[0].xaxis.set_major_formatter(ticks_x)
+    axs[0].legend(title="HHZ", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[1].legend(title="HHN", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[2].legend(title="HHE", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    fig.savefig("TestOne: Detrended, Filtered and Normalized", dpi=600)
+
     station_stream = torch.from_numpy(waveform[None])
     out = model(station_stream)
     _, predicted = torch.max(out, 1)
     print(predicted)
-    fig, axs = plt.subplots(3, sharex=True)
-    axs[2].set_xlabel("Time in hundredths of seconds")
-    fig.suptitle(
-        "Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted))
-    )
-    axs[0].plot(waveform[0], "r")
-    axs[1].plot(waveform[1], "b")
-    axs[2].plot(waveform[2], "g")
-    axs[0].axvline(random_point, color="black")
-    axs[1].axvline(random_point, color="black")
-    axs[2].axvline(random_point, color="black")
 
-    fig.savefig("TestOne: Results")
+    fig, axs = plt.subplots(3, sharex=True)
+    axs[2].set_xlabel("Time[sec]")
+    fig.suptitle(
+        "Modified data with P-Pick, was detected as P-Wave? " + str(bool(predicted)), fontsize=12
+    )
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[2].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[0].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
+    axs[1].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
+    axs[2].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
+    ymin, ymax = axs[0].get_ylim()
+    axs[0].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    ymin, ymax = axs[1].get_ylim()
+    axs[1].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    ymin, ymax = axs[2].get_ylim()
+    axs[2].annotate("P-Pick", xy=(random_point, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    axs[2].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+    axs[0].tick_params(axis="both", labelsize=8)
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[2].tick_params(axis="both", labelsize=8)
+    f = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x, pos: "${}$".format(f._formatSciNotation('%1.10e' % x))
+    axs[0].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[1].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+    axs[2].yaxis.set_major_formatter(ticker.FuncFormatter(g))
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[2].xaxis.set_major_formatter(ticks_x)
+    axs[0].legend(title="HHZ", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[1].legend(title="HHN", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    axs[2].legend(title="HHE", title_fontsize=8, loc=2, frameon=True, labelspacing=0)
+    fig.savefig("TestOne: Results", dpi=600)
 
 
 def predict(catalog_path, checkpoint_path, hdf5_path):
@@ -633,9 +798,28 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     #    print(windowed_st)
 
     #    print("---")
+    waveform = np.array(h5data.get(event + "/" + station))
 
-    fig, axs = plt.subplots(4, constrained_layout=True)
-    fig.suptitle("Input: Raw data with P-Pick with detection vector ")
+    d0 = obspy_detrend(waveform[0])
+    d1 = obspy_detrend(waveform[1])
+    d2 = obspy_detrend(waveform[2])
+
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+    f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+    f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+    # set low pass filter
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
+    g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+    g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+    g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+    waveform = np.stack((g0, g1, g2))
+    waveform, _ = normalize_stream(waveform)
+
+    fig, axs = plt.subplots(2, sharex=True)
+    fig.suptitle("P-wave classification every tenth of a second for one example.", fontsize=10)
     # d0 = obsyp_detrend_simple(raw_waveform[0])
     # d1 = obsyp_detrend_simple(raw_waveform[1])
     # d2 = obsyp_detrend_simple(raw_waveform[2])
@@ -648,16 +832,35 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
     # station_stream = np.stack((f0, f1, f2))
     # station_stream = normalize_stream(station_stream)
     station_stream = np.array(h5data.get(event + "/" + station))
+    axs[1].tick_params(axis="both", labelsize=8)
+    axs[0].tick_params(axis="both", labelsize=8)
 
-    axs[0].plot(station_stream[0], "r")
-    axs[1].plot(station_stream[1], "b")
-    axs[2].plot(station_stream[2], "g")
-    axs[3].plot(outs)
-    axs[0].axvline(3000, color="black")
-    axs[1].axvline(3000, color="black")
-    axs[2].axvline(3000, color="black")
-    axs[3].axvline(3000, color="black")
-    fig.savefig("Detection Predict Plot")
+    axs[1].set_ylabel("Detection vector", fontsize=8)
+    axs[0].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[1].set_xlabel("Time[sec]", fontdict={"fontsize": 8})
+    axs[0].axvline(3000, color="black", linestyle="dotted", linewidth=0.5)
+    axs[1].axvline(3000, color="black", linestyle="dotted", linewidth=0.5)
+    ymin, ymax = axs[0].get_ylim()
+    axs[0].annotate("P-Pick", xy=(3000, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    axs[0].set_title(
+        "Normalized and filtered input for Z(blue), N(orange) and E(green)",
+        fontdict={"fontsize": 8},
+    )
+
+    scale_x = 100  # milliscds to scd
+    ticks_x = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(x / scale_x))
+    axs[1].xaxis.set_major_formatter(ticks_x)
+    axs[1].plot(outs, linewidth=0.5, color="black")
+    p_detection = np.argmax(outs)
+    ymin, ymax = axs[1].get_ylim()
+    axs[1].axvline(p_detection, color="chocolate", linewidth=0.7)
+    axs[1].annotate("P-wave detection", xy=(p_detection, ymin), xytext=(-4, 2), textcoords='offset points',
+                    annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
+    axs[1].set_title("Classification for every tenth of seconds", fontdict={"fontsize": 8})
+    fig.savefig("DET:Prediction Plot" + datetime.now().strftime("%Y-%m-%d %H:%M"), dpi=600)
     #
     # sequence_length = 4
     # data = pd.read_csv(catalog_path)
@@ -758,12 +961,33 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
 #    waveform_path_add="/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/",
 #    inv_path="/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml",
 # )
-
-learn(cp, hp, mp)
-predict(catalog_path=cp, hdf5_path=hp,
-checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
+#     # load obpsy waveforms
+# catalog = pd.read_csv(cp)
+# catalog = catalog[catalog["MA"]>=4]
+# idx = 16
+#
+# event, station, p,dist,ma = catalog.iloc[idx][["EVENT", "STATION", "P_PICK", "DIST", "MA"]]
+# print(idx, dist,ma)
+# o_raw_waveform = (obspy.read(os.path.join(wp, f"{event}.mseed")))
+#
+# o_waveform = o_raw_waveform.select(station=station, channel="HH*")
+# o_station_stream = o_waveform.slice(
+#         starttime=UTCDateTime(p),  #
+#     endtime=UTCDateTime(p) + 3.99,
+# )  # -0.01 deletes the last item, therefore enforcing array indexing
+# inv = obspy.read_inventory(ip)
+# inv_selection = inv.select(station=station, channel="HH*")
+# print(o_station_stream)
+# o = o_station_stream.copy()
+# o.remove_sensitivity(inv_selection)
+# o.plot(outfile = "obspy_plot_pick.png")
+#
+# plt.show()
+# learn(cp, hp, mp)
+# predict(catalog_path=cp, hdf5_path=hp,
+# checkpoint_path="/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/detection/version_1/checkpoints/epoch=62-step=4031.ckpt")
 # test(catalog_path=cp,hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_2/checkpoints/epoch=22-step=91.ckpt",hparams_file="../tb_logs/detection/version_2/hparams.yaml")
-test_one(catalog_path=cp, hdf5_path=hp,checkpoint_path="../tb_logs/detection/version_8/checkpoints/epoch=22-step=91.ckpt")
+# test_one(catalog_path=cp, hdf5_path=hp,checkpoint_path="/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/detection/version_1/checkpoints/epoch=62-step=4031.ckpt")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
