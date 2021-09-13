@@ -23,26 +23,18 @@ from datasets_magnitude import normalize_stream, obspy_detrend
 from litdatamodule_magnitude import LitDataModule
 from litnetwork_magnitude import LitNetwork
 
+# cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
+# wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+# hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
+# mp = "/home/viola/WS2021/Code/Models"
+chp = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/magnitude/version_76/checkpoints/epoch=5-step=95.ckpt"
 cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
 wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
 wpa = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
 hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
 mp = "/home/viola/WS2021/Code/Models"
-chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
-hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
 ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
-
-#cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog.csv"
-#wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-#hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset.h5"
-#mp = "/home/viola/WS2021/Code/Models"
-#chp = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/magnitude/version_76/checkpoints/epoch=5-step=95.ckpt"
-cp = "../../new_catalogue_sensitivity.csv"
-wp = "../../../data/earthquake/waveforms_long_full/"
-wpa ="../../../data/earthquake/waveforms_long_additional/"
-hp = "../../new_h5data_sensitivity.h5"
-chp = "../tb_logs/magnitude/version_26/checkpoints/epoch=353-step=412055.ckpt"
-ip = "../../inventory.xml"
+fp = "/home/viola/WS2021/Jannes Daten/highpass_filters.csv"
 
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
@@ -93,7 +85,8 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     # test (pass in the model)
     trainer.test(model, datamodule=dm)
 
-def predict(catalog_path, hdf5_path, checkpoint_path):
+
+def predict(above, catalog_path, hdf5_path, checkpoint_path):
     sequence_length = 20
     split_key = "test_files"
     file_path = hdf5_path
@@ -107,7 +100,6 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     model.freeze()
 
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
         test_catalog=test_catalog[test_catalog["MA"]>=5]
     idx = randrange(0, len(test_catalog))
@@ -227,9 +219,15 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     axs[1].axhline(ma, color="indigo", linestyle="dashed", linewidth=0.7)
     axs[1].plot(output, color="mediumvioletred", alpha=1, linewidth=0.7)
     xmin, xmax = axs[1].get_xlim()
-    axs[1].annotate("Real magnitude(" + str(np.round(ma, decimals=2)) + ")", xy=(xmin, ma),
-                    xytext=(2, 2), textcoords='offset points',
-                    annotation_clip=False, fontsize=6)
+    mag = max(output[2001:-1])
+    if ma > mag or 0.2 > mag - ma > 0:
+        axs[1].annotate("Real magnitude(" + str(np.round(ma, decimals=2)) + ")", xy=(xmin, ma), xytext=(2, -6),
+                        textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
+    else:
+        axs[1].annotate("Real magnitude(" + str(np.round(ma, decimals=2)) + ")", xy=(xmin, ma), xytext=(2, 2),
+                        textcoords='offset points',
+                        annotation_clip=False, fontsize=6)
 
     # axs[1,0].axvline(random_point, color="black")
     # axs[2,0].axvline(random_point, color="black")
@@ -249,20 +247,18 @@ def predict(catalog_path, hdf5_path, checkpoint_path):
     fig.savefig("MA:Prediction Plot" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), dpi=600)
 
 
-def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
-
+def timespan_iteration(above, catalog_path, checkpoint_path, hdf5_path, timespan_array):
     for t in timespan_array:
         t = int(t)
-        predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
+        predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, t)
 
 
-def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
+def predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, timespan=None):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     split_key = "test_files"
     file_path = hdf5_path
     h5data = h5py.File(file_path, "r").get(split_key)
@@ -412,7 +408,12 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         lw=0,
         alpha=0.5,
     )
-    if swaves is True:
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+
+    if swaves is True and len(true_s) != 1:
         x = np.array(true_s)
         y = pred_s
         xy = np.vstack([x, y])
@@ -448,11 +449,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     plt.axis("square")
     plt.xlabel("True magnitude", fontsize=8)
     plt.ylabel("Predicted magnitude", fontsize=8)
-    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # ac.ax.shrink = 0.8
-    ac.ax.tick_params(labelsize=8)
-    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
-    
+
     if timespan is not None:
         fig.savefig(
             "Magnitude:PredVSTrue_" +str(above)+"_" + str(timespan).replace(".", "_") + "sec", dpi=600
@@ -463,11 +460,11 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     # Plot without differentiation
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
-    fig.suptitle("Predicted and true magnitude values")
+    fig.suptitle("Predicted and true magnitude values", fontsize=10)
     # " \nRSME = " + str(
     #    rsme), fontsize=10)
     if above is True:
-        fig.suptitle("Predicted and true magnitude values for magnitudes above 5")
+        fig.suptitle("Predicted and true magnitude values for magnitudes above 5", fontsize=10)
     if swaves is True:
         x = np.array(true + true_s)
         y = np.append(pred, pred_s)
@@ -516,13 +513,12 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         fig.savefig("Magnitude:PredVSTrue_simple_"+str(above), dpi=600)
 
 
-def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
+def rsme_timespan(above, catalog_path, checkpoint_path, hdf5_path):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     s_times = test_catalog["S_PICK"]
     p_times = test_catalog["P_PICK"]
     split_key = "test_files"
@@ -684,15 +680,15 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     axs.legend(fontsize=8, loc="best")
     plt.xlabel("Time after P-Wave arrival[sec]", fontsize=8)
     plt.ylabel("RSME", fontsize=8)
-    fig.savefig("Magnitude:RSME_"+str(above), dpi=600)
+    fig.savefig("Magnitude:RSME_" + str(above), dpi=600)
 
 
 # learn(cp, hp, mp)
-#predict(cp, hp, chp)
+# predict(False, cp, hp, chp)
 
-# predtrue_timespan(catalog_path=cp, checkpoint_path=chp, hdf5_path=hp, timespan = 4)
-timespan_iteration(cp, chp, hp, timespan_array=[2,4,8, 16])
-#rsme_timespan(cp,chp,hp)
+# predtrue_timespan(False, catalog_path=cp, checkpoint_path=chp, hdf5_path=hp)
+# timespan_iteration(False, cp, chp, hp, timespan_array=[2,4,8, 16])
+# rsme_timespan(False, cp,chp,hp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
@@ -702,7 +698,7 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_path", type=str)
     parser.add_argument("--hparams_file", type=str)
     parser.add_argument("--timespan", type=list)
-    parser.add_argument("--time", type= int)
+    parser.add_argument("--time", type=int)
     args = parser.parse_args()
     action = args.action
 
