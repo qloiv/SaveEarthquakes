@@ -33,13 +33,15 @@ mp = "/home/viola/WS2021/Code/Models"
 chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
 hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
 ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
+fp = "/home/viola/WS2021/Jannes Daten/highpass_filters.csv"
 
-cp = "../../new_catalogue_sensitivity.csv"
-wp = "../../../data/earthquake/waveforms_long_full/"
-wpa ="../../../data/earthquake/waveforms_long_additional/"
-hp = "../../new_h5data_sensitivity.h5"
-chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
-ip = "../../inventory.xml"
+
+# cp = "../../new_catalogue_sensitivity.csv"
+# wp = "../../../data/earthquake/waveforms_long_full/"
+# wpa ="../../../data/earthquake/waveforms_long_additional/"
+# hp = "../../new_h5data_sensitivity.h5"
+# chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
+# ip = "../../inventory.xml"
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
 # hparams_file = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/hparams.yaml",
@@ -832,17 +834,18 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     # h5data.close()
 
 
-def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add):
+def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add,
+                      filter_path):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
     above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]  # TODO change back
     # test_catalog = test_catalog[test_catalog["MA"] >= 6]
     # test_catalog = test_catalog[test_catalog["DIST"] <=200000]
     idx = randrange(0, len(test_catalog))
-    #idx = 123
+    # idx = 123
     event, station, distance, p, s, ma = test_catalog.iloc[idx][
         ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK", "MA"]
     ]
@@ -866,9 +869,7 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     model.freeze()
 
     raw_waveform = np.array(h5data.get(event + "/" + station))
-    raw = raw_waveform[
-               :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
-               ]
+
     seq_len = 20 * 100  # *sampling rate 20 sec window
     p_pick_array = 3000
     random_point = np.random.randint(seq_len)
@@ -935,19 +936,20 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     inv_selection = inv.select(station=station, channel="HHZ")
 
     new_stream_w30 = o_station_stream.copy()
-    
+
     new_stream_w30[0].data = obspy_detrend(new_stream_w30[0].data)
-  
-    
+
     # set high pass filter
+    filters = pd.read_csv(filter_path)
+    filters = filters[filters["EVENT"] == event]
+    filters = filters[filters["STATION"] == station]
+    filterfreq = np.array(filters["HIGHPASS_FREQ"])[0]
     filt = signal.butter(2, filterfreq, btype="highpass", fs=100, output="sos")
 
     new_stream_w30[0].data = signal.sosfilt(filt, new_stream_w30[0].data, axis=-1).astype(np.float32)
 
-
     new_stream_w30[0].data = signal.sosfilt(lfilt, new_stream_w30[0].data, axis=-1).astype(np.float32)
 
-    
     disp_w30 = new_stream_w30.remove_response(
         inventory=inv_selection, pre_filt=None, output="DISP", water_level=30
     )
@@ -980,9 +982,9 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     axs[2].set_xlabel("Time[sec]", fontsize=8)
     axs[1].set_ylabel("Distance[km]", fontsize=8)
     axs[2].set_ylabel("Magnitude", fontsize=8)
-    axs[0].plot(raw[1], "tab:orange", linewidth=0.5, alpha=0.8)
-    axs[0].plot(raw[2], "tab:green", linewidth=0.5, alpha=0.8)
-    axs[0].plot(raw[0], "tab:blue", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[1], "tab:orange", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[2], "tab:green", linewidth=0.5, alpha=0.8)
+    axs[0].plot(waveform[0], "tab:blue", linewidth=0.5, alpha=0.8)
 
     axs[0].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
     axs[1].axvline(random_point, color="black", linestyle="dotted", linewidth=0.5)
@@ -1689,15 +1691,15 @@ def predict(
 
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
-#predict(cp, hp, chp)
-#test_one(cp,chp,hp)
-compute_magnitude(cp, chp, hp, ip, wp, wpa)
-#mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
-#rsme_timespan(cp, chp, hp)
-#predtrue_timespan(cp, chp, hp)
-#timespan_iteration(cp, chp, hp, timespan_array=[2,4,8,16])
-#test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
-#mag_timespan_iteration(catalog_path=cp,timespan_array=[2,4,8,16],hdf5_path=hp,wp=wp,wpa=wpa,checkpoint_path=chp,inventory=ip)
+# predict(cp, hp, chp)
+# test_one(cp,chp,hp)
+# compute_magnitude(cp, chp, hp, ip, wp, wpa, fp)
+# mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
+# rsme_timespan(cp, chp, hp)
+# predtrue_timespan(cp, chp, hp)
+# timespan_iteration(cp, chp, hp, timespan_array=[2,4,8,16])
+# test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
+# mag_timespan_iteration(catalog_path=cp,timespan_array=[2,4,8,16],hdf5_path=hp,wp=wp,wpa=wpa,checkpoint_path=chp,inventory=ip)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
@@ -1707,7 +1709,7 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_path", type=str)
     parser.add_argument("--hparams_file", type=str)
     parser.add_argument("--timespan", type=list)
-    parser.add_argument("--inventory",type = str)
+    parser.add_argument("--inventory", type=str)
     parser.add_argument("--waveform_path",type = str)
     parser.add_argument("--waveform_path_add",type = str)
     args = parser.parse_args()
