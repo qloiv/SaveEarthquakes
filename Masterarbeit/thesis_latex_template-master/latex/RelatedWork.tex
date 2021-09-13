@@ -2,18 +2,29 @@
 \begin{document}
 %
 \chapter{Related Work}\label{chap:prevwork}
-Ross et al. (2018) "Generalized Seismic Phase Detection with Deep Learning"\cite{ross2018generalized}
 
 %
 %We all sit on the shoulders of giants! Honor your ancestors and marvel their work, for it is theirs that brought you here!
 %
+
 \todo{short introduction about early warning in literature?}
 \section{Earthquake Detection}
+\cite{perol2018convolutional} try to detect an earthquake by dividing the physical area into clusters with k-means. Their CNN then classifies an example as either noise or an earthquake event located in one of the six clusters.\\
+\cite{li2018machine} train a generative adversarial network so that the generator generates p-waves. The discriminator, which was trained to recognize true p-waves is then used partially as a feature extraction network. The features are used as an input to a random forest classifier, which can differentiate between p-wave and noise.\\
+\cite{ross2018generalized} trained a CNN, which can classify a four-second waveform input as either P-wave, S-wave or noise. They conclude from their tests, that the algorithms detects the onset of a wave visually and is therefore not bound to events with a certain magnitude.\\
+PhaseNet from \cite{zhu2019phasenet} picks S-wave and P-wave arrivals on a 30sec-input. To deal with imprecise manually estimated picking times they place a gaussian distribution of the arrivals. PhaseNet is based on U-Net \todo{cite?} which uses down- and upsampling to process time-series data.
 %
 %
 \section{Estimating magnitude and distance}
+\cite{mousavi2020machine} propose a method for directly computing the earthquake magnitude from the waveforms in a single-station use. They use a CNN with LSTMs on a 30sec- three channel seismogram input. While their results look very promising, their dataset had just a few events with a magnitude above 5 and is therefore showing a poorer performance on higher magnitudes, or does not even take them into account. \\
+\cite{munchmeyer2021earthquake} build a multi-station real-time model for predicting magnitude and location. They use an attention based transformer network, which does feature extraction and feature combination while using multiple stations. The authors also denoted a saturation effect for magnitudes above 7, however the underestimation could be partially helped by transfer learning, as they had other datasets at hand.\\
+\cite{ristea2021complex} use Short-Time Fourier Transform on one minute long seismograms as an input to a complex CNN to compute magnitude, distance and depth on a single station model.
+\cite{lomax2019investigation} build on the work of \cite{perol2018convolutional} and extend ConvQuakeNet to detect earthquakes in any location and compute magnitude and distance. This is an explorational work, where the authors use accuracy measurements for binned estimates of distance, magnitude, azimuth and depth.\\
+\cite{mousavi2019bayesian} use a network with dilated residual convolutions to estimate epicentral distance an p-travel time on 1 minute long seismograms. For predicting the uncertainty they implement a loss function which learns a variance for each output parameter, as well as applying Monte Carlo Dropout.\\
+\cite{zhang2021real} build two convolutional networks, one for a 3D location prediction and one for 1D magnitude predictions. They place a gaussian distribution over the labels and use down- and then upsampling in their networks.
 
 \section{Parametric Methods}
-
+\cite{kuyuk2013global} compare different parameters for the best regressional fit when computing the magnitude. They use three datasets to determine, that the maximum peak displacement four seconds after the p-Wave arrival and the epicentral distance. They discover an underestimation of magnitude values above magnitude 7, which might either be determined by their small datasets or the short timeframe where they measure the peak displacement.\\
+In a similar way \cite{wu2006magnitude} estimated the magnitude with a regression, using the first three seconds of the p-wave for the peak displacement and hypocentral distance as a second parameter. They propose usage of their method for events with a magnitude up to 6.5.
 \subfilebib % Makes bibliography available when compiling as subfile
 \end{document}

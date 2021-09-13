@@ -2,22 +2,36 @@
 \begin{document}
 
 \chapter{Prerequisites}\label{chap:preq}
-
+\todo{single, multi-station?, distance computation?}
+\todo{magnitude computation and magnitude scales}
+\todo{azimuth and single/multistation}
+\todo{Station Codes}
+\todo{distance detection up to which point}
+\todo{epicentral and hypocentral distance, depth (on an image)}
+\todo{magnitudenberechnung klassisch}
+\todo{Machine learning intro}
+\todo{motivierender Satz}
+\todo{Ein Gedanke pro Satz}
+\todo{uncertainties in the Model weiter nach hinten}
+\todo{dropout erklären}
+\todo{peak displacement Bild}
+\todo{acceleration, displacement}
+\todo{sensitivity}
 \section{Earthquake Physics}\label{section:geophysikalische_grundlagen}
 \subsection{The Earthquake Event}
 An earthquake are caused by movements within the earth crust. These might result from earth plates moving under or against each other or artificial causes like mining works. After building up a lot of stress against friction, rock fractures along a fault line while the other tectonic layers can slip past each other. The fault line can even be visible on the surface. \\
-The point where the fracturing starts is called hypocenter, while the epicenter is this point's projection onto the surface as seen in figure \ref{fig:hypocenter}. The breakage can extend to other points along the fault line as well as cause more ruptures.
-\begin{figure*}[hb]
+The point where the fracturing starts is called hypocenter, while the epicenter is this point's projection onto the surface as seen in figure \ref{fig:hypocenter}. The breakage can extend to other points along the fault line as well as cause more ruptures. 
+\begin{figure*}[h!]
 	\centering
-	\includegraphics[width=0.6\linewidth]{../pictures/Prerequisites/Epicenter_Diagram.jpg}
+	\includegraphics[width=0.6\linewidth]{Prerequisites/Epicenter_Diagram.jpg}
 	\caption{Hypocenter and Epicenter}
 	\label{fig:hypocenter}
 \end{figure*}
-\subsection{Seismic Waves}
+\subsection{Seismic Waves} \todo{S waves are dangerous too}
 The energy, which is emitted as the fracturing occurs, travels through the earth crust as seismic waves. We denote different types of waves, which travel at different velocities. Soil and material type (air, liquid or solid) also affect wave arrival times. Waves also reflect on certain materials, creating many sub-types of waves to arrive.\\
 The first wave to arrive at a site is the p-wave or primary/pressure wave. The propagating waves moves the material back and forth and is therefore also known as a compressional wave. \\
 S-waves, second or shear waves move the material in a right angle to the movement direction. Contrary to p-waves, s-waves cannot move through liquid and are slightly slower than p-waves. Figure \ref{fig:speedwaves} shows this relationship.
-\begin{figure*}[hb]
+\begin{figure*}[h!]
 	\centering
 	\includegraphics[width=0.6\linewidth]{../pictures/Prerequisites/Speeds_of_seismic_waves.PNG}
 	\caption{Velocity of S and p Wave}
@@ -25,7 +39,7 @@ S-waves, second or shear waves move the material in a right angle to the movemen
 \end{figure*}
 S-Wave and P-Waves are often denoted as body waves. Surface waves arrive even later and are the most damaging ones. Two important waves are Rayleigh and Love waves. Rayleigh waves cause the surface to "ripple", they move the ground up and down while Love waves cause horizontal shearing.
 We can see all mentioned types of waves in figure \ref{fig:waves}.¸
-\begin{figure*}[hb]
+\begin{figure*}[h!]
 	\centering
 	\includegraphics[width=0.6\linewidth]{../pictures/Prerequisites/waves.jpg}
 	\caption{Overview of seismic waves}
@@ -37,7 +51,7 @@ The seismic waves which arrive on a site can be recorded by a seismometer, which
 \subsection{Networks}
 Multiple seismometers might be organized in a network, where stations are linked together virtually or physically and their data can be processed nearly simultaneously. Network goals are often earthquake prediction with the according depth and distance, but network size, sensor type and network range can be drastically different depending on the type and magnitude of earthquake which must be detected. As the emitted waves get weaker depending on distance and soil type good coverage is crucial to get realistic predictions. This is especially important for location computation, as we need three or more sensors on the corners of a preferably equilateral triangle to get a precise location with the circle method. More information on the organisation of sensor networks can be found in \cite{Havskov2016}.
 \subsection{Early Warning}
-\begin{figure*}[hb]
+\begin{figure*}[h!]
 	\centering
 	\includegraphics[width=0.6\linewidth]{../pictures/Prerequisites/dia_seismogram.jpg}
 	\caption{One axis recording of a seismograph}

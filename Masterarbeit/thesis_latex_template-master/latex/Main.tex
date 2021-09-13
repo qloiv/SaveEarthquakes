@@ -1,14 +1,98 @@
 \documentclass[thesis.tex]{subfiles}
 \begin{document}
 
-\chapter{Algorithm}\label{chap:basics}
-
+\chapter{Main}\label{chap:basics}
+\subsection{Hypothesis} 
+The underlying question of our project comes from an early warning background. We want to be able to detect high magnitude earthquakes really well. Naturally, strong earthquakes rarely occur and those cannot found, or just scarsely in the training data. For a classic neural network, this makes it incredibly difficult to reliably detect them. The network likely underestimates the magnitude, which is dangerous in early warning. Some more classic parametric methods are only partially affected by this. Especially simple regression lines do not exclude outlier points, which we think, can prove helpful in this scenario. Our hypothesis is, that a simple parametric method will be able to detect high magnitude earthquakes much better, than a simple neural network designed for the same task.
+\subsubsection{Our algorithm}
+Our project is based on research already being done in seismology. For the parametric method we use work by \cite{kuyuk2013global}. Their regression computation uses the maximum peak displacement of the P-wave and the epicentral distance. While the peak displacement can directly be extracted from the incoming signal, we also need an estimation for the distance. For this we will use a simple neural network, which should output a distance estimation when recording the signal. To gain better insight into the distance model and to make our predictions more reliable, we introduce an uncertainty for the distance model. The network is going to predict not just a distance value, but also a range of uncertainty, where the distance value might also be located. This uncertainty can directly be transferred into the magnitude evaluation and be used, to also give an uncertainty for the final prediction.
+\subsubsection{The baseline}
+Our baseline model is going to get the waveform as an input and output a magnitude estimation. We want to keep the neural network as simple as possible to gain insight about the general performance of neural networks. To make magnitude estimation easier for the model, we will also feed the maximum amplitude of the original waveform as a separate input. 
+\subsection{Boundary Conditions}
+Our aim is to create a simple early warning algorithm. This generates a few demands:
+\begin{itemize}
+	\item The earthquake must be detected at first: We want to know, when it is clever to start estimating the magnitude. Today's algorithms can detect earthquake arrivals very well and it would be foolish to not use one of them. After detecting an earthquake, the algorithm can be (nearly a 100\%) sure, that its input data contains not only noise, but really an earthquake. This makes predictions more reliable and limits computation time. 
+	\item The algorithms should work on a single station. Multi-station models give better results, because we can exclude faulty stations and average over station predictions. However, they come with a lot of additional architecture and computation overhead, which makes it more difficult to assure a timely estimation. Plus even multi-station models might rely on a single-station estimation. 
+	\item We want to get good predictions as fast as possible. An early warning algorithm should give an alarm before the damaging waves arrive. Therefore we deliberately learn our models on a timeframe around the start of the earthquake. While later waves include more information about magnitude and distance, they also cause more damage than the first waves. In our evaluation we will have a clear distinction between results that include those later waves, and those which do not. Hopefully this will give us a realistic impression of what our algorithm is able to achieve.
+\end{itemize}
+\subsection{Program Structure}
+\begin{figure*}[h!]
+	\centering
+	\includegraphics[width=\textwidth]{../pictures/Main/schema_final.png}
+	\caption{Overview of the program design. Preprocessing steps are not shown. Neural networks are shown in rounded rectangles, the proposed algorithm in orange, the baseline in green.}
+	\label{fig:program_structure}
+\end{figure*} 
+An overview of the program design can be seen in figure \ref{fig:program_structure}. 
+ \subsubsection{Seismogram input}
+ We get continous signal data from our station, which can be seen in the "original seismogram". In regular intervals, this data can be evaluated by an earthquake detection algorithm. We use an adaption of the algorithm by \cite{ross2018generalized}, which needs a four second long input. This adapted algorithm can classify the input into P-wave and noise. When detecting multiple P-waves for a few seconds of a continuous signal stream, we can step into part two of the procedure. \\
+ \subsubsection{Detecting an earthquake}
+After detecting the earthquake, we try to determine the arrival time of the earthquake. We can just take the time of the very first P-wave detection. With that information we use up to four seconds after the P-wave arrival to cut out a "first four seconds seismogram". This is used to compute our peak displacement, which is just the maximum displacement of this window. If we want a prediction earlier, maybe two seconds after the beginning, we take only the two seconds we got and compute their maximum displacement. However we will not use more than the first four seconds for peak displacement computation.\\
+After detecting an earthquake we can directly start with estimating the magnitude. This is possible even if the 20-second window contains 19 seconds of noise and 1 second of earthquake information. In case of our baseline magnitude network, the data is directly fed into the network. It will then output a prediction.\\
+For our algorithm we take an additional step. The 20-second window is used to generate a distance prediction, alongside an uncertainty for the generated value. Both distance and uncertainty are parameters in our "linear function for the magnitude", our adapted parametric method. Together with the value for the peak displacement our function gives us a magnitude prediction. We might use the uncertainty to get upper and lower bounds for the magnitude prediction.\\
+While the detection is a crucial part of early warning, we will later focus on comparing the magnitude estimation routines. The question when to classify multiple detections of P-waves as an earthquake is mostly answered from a theoretical perspective and is not going to be evaluated. 
 \section{Algorithm Design and requirements}
 Our aim is to design a framework, which is in general suitable for early warning. Therefore we decided to firstly implement an algorithm which detects an incoming earthquake, as this makes it easier to eventually use the whole project later and gives us good reason to continue computing the magnitude, if we are sure, that there is really an earthquake. As time is also an important factor, we just use data of a single station. While it is much more reliable to use a network of seismometers, we omitted this due to time and complexity overhead. Plus, the project was designed to work on small devices, which might not be able to process lots of data at once. As we wanted a reliable prediction, which would be able to include the uncertainty of the dataset, we want to at least capture the uncertainty of our deep neural network by not learning a distinctive value, but a Gauss function with an expected value and a variance, representing the uncertainty.
 \section{Data overview}
+The dataset consists of earthquakes detected by multiple stations in North Chile. A map, taken from \cite{Munchmeyer2020} can be seen in figure \ref{fig:chile}. The original catalogue consists of 101,601 earthquake events in the years 2007 to 2014. The stations are mostly part of the IPOC network (CX, GFZ German Research Centre For Geosciences \& Institut Des Sciences De L’Univers-Centre National De La Recherche CNRS-INSU \citeyear{fdsnCX}, but a few station were added from other networks: GEOFON (GE, GEOFON Data Centre \citeyear{fdsnGE}, Minas (5E, Asch et al. \citeyear{fdsn5E}), WestFissure (8F, Wigger et al. \citeyear{fdsn8F}), CSN (C, C1,Universidad de Chile \citeyear{fdsnC1}) and Iquique (IQ, Cesca et al. \citeyear{fdsnIQ}).
+\begin{figure*}[h!]
+	\centering
+	\includegraphics[width=0.6\linewidth]{Main/Chile.jpg}
+	\caption{A map of all station of the Chile dataset with colour-coded depth for the earthquake events.}
+	\label{fig:chile}
+\end{figure*}
 \subsection{The Dataset}
+After sorting out all dataset entries, where either the waveform traces were too short or the waveform data was missing or faulty we end up with 993174 data points, each identifiable with a pair of station code and earthquake event name.\todo{numbers}´ For each data point we have got information about the epicentral distance to the concurrent earthquake event, the depth of the earthquake (measured perpendicular to the surface) and the magnitude of the earthquake. Additionally, we have a waveform file with the recorded seismograms for each earthquake, where we can find every data point's station's signal.
+\subsubsection{Train, Test and Validation Sets}
+We further split our dataset in train, test and validation sets. This is a (roundabout) 60:30:10 split, with a temporal ranking. Like in production training data is the oldest, with test and validation data following in time. Namely we have 595875 test, 297806 train and 99493 validation entries to work with.
+\subsubsection{Parameter Distribution}
+Naturally the distribution of our learning parameters is not even. In figure \ref{fig:distance_histogram} we see a clear peak around 150km for the epicentral distance  with the most of the examples laying between 0 and 250 kms. Most of the smaller earthquakes cannot be detected far away, so the number of entries for high distances is low.\\
+Because we measure epicentral distance, it is interesting to see, how much of this distance is accountable to the depth of an earthquake. In figure \ref{fig:depth_histogram} we see that the chile dataset consists of very deep earthquakes with a lot of entries having a depth of 100 to 125 kilometers. Further description and explanation can be found with the authors of the dataset \cite{sippl2018seismicity}. This distinctive appearance of many deep earthquakes is even more conspicous in the distance to depth scatterplot of figure \ref{fig:depth_distance_scatterplot}.
+\begin{figure*}[h!]
+	\begin{subfigure}[b]{0.5\textwidth}
+		\includegraphics[width=\textwidth]{../pictures/Main/histogram_dist.png}
+		\caption{Distribution of epicentral distance}
+		\label{fig:distance_histogram}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.5\textwidth}
+			\includegraphics[width=\textwidth]{../pictures/Main/histogram_depth.png}
+		\caption{Distribution of depth}
+		\label{fig:depth_histogram}
+	\end{subfigure}
+\caption{Histogram plots of epicentral distance and depth for the Chile dataset, each with 100 bins}
+\end{figure*} 
+\begin{figure*}[h]
+	\centering
+	\includegraphics[width=0.8\textwidth]{../pictures/Main/depth_distance}
+	\caption{Distance and depth plotted against each other in a scatterplot. The dense areas are recognizable by a lighter and more radiant colour}
+	\label{fig:depth_distance_scatterplot}
+\end{figure*} 
+\todo{magnitude distribution}
 \subsection{Data preparation}
-Before using the seismometer data as an network input, we are preparing it for neural network use. This means we normalize it between 0 and 1, remove any trend by aligning start and end point at zero horizontally and filtering it with a two factor butterworth filter. We are doing that separately for every input window. 
+\subsubsection{For the neural network}
+The neural networks gets two different input types: Firstly, the waveforms, as input for learning and later for predicting. Secondly the learning goal parameters, either distance or magnitude. \\
+As a first preprocessing step the instrument sensitivity is removed from the waveform files. Depending on the station's instrument properties a constant factor is multiplied with the signal. While the shape of the signal does not change, the maximum amplitude does. We do this to make the waveform input station independent, and to later feed the maximum amplitude of the signal into the magnitude network as additional information during the learning process. Therefore we now extract the maximum amplitude of the input window.\\
+Then we do simple detrending by removing a straight line through the first and last point of the signal from the data. Afterwards we apply a two factor high-pass filter at 2 Hz and a two-factor low-pass filter at 35 Hz. In the end the waveform data is normalized around zero into a [-1,1] range. 
+Preprocessing is done separately for every input window, so the network cannot deduce any additional information from any preprocessing done for adjacent parts of the signal.
+
+The learning parameters, distance and magnitude are both normalized between zero and one with a Min-Max-Scaler. As maximum and minimum values 1 and 600000 meters were chosen for the epicentral distance, with the current extrema in the whole dataset being approximately 118 meters and 512 kilometers.\\
+Similarly the magnitude was scaled between 0 and 9, whereas the minumum and maximum values are 0.716 and 8.055 respectively.
+\subsection{For the displacement computation in the formula} \todo{water level}
+We use the same waveforms to compute a value for peak displacement, which we use either for a linear regression on the train dataset or when applying the algorithm on an incoming signal. We don't remove the sensitivity, but start with detrending the data by removing a straight-line fit through the first and last point. Instead of using a generic frequency for the high-pass filter, we use an adaptive filtering technique:
+\subsubsection{Adaptive Filtering}
+We do not use the 2 Hz high-pass filter when computing the displacement for the parametric methods. Here we adapt the high pass filter frequency to a value from [0.001,0.1,0.3,0.5,0.75]. The method is taken from \cite{munchmeyer2020low}. As the noise level can occlude the signal for smaller earthquakes, we may want to take a high filter frequency, except for larger earthquakes, where the signal is so strong that we might loose important information by using a more influential filter. \\
+For this they use the signal-to-noise ratio from 30 seconds before and after the P-pick. The lowest filter frequency while retaining a signal-to-noise ratio above 4 is chosen. Figure \ref shows the filter frequencies for the different magnitudes computed by \cite{munchmeyer2020low} and is also taken from their publication.\\
+It is important to mention that we use this method not only for computing the regression line on the dataset but also when estimating the magnitude from an incoming signal with the parametric method. This is possible because we pre-computed the frequencies also on our test dataset, but some differences would have to be made when using our method for unknown data. The signal-to-noise ratio could only be computed up to the latest incoming signal data, which would result in a more inaccurate filter frequency choice, likely underestimating the ratio at first. The frequency could be adapted every time we rerecord the arriving signal, making it more reliable over time. 
+
+Afterwards we apply a low-pass filter at 35 Hz. We then remove the sensitivity, but apply a water level to prevent enhancing noise. Station instruments tend to be less sensitive for very high or very low frequencies. Removing the sensitivity is equivalent to dividing the signal input through a sensitivity value. If this value is very small, this division can result in a very high output, just because the instrument was not able to detect well. This can be hindered by clipping the sensitivity value before it gets too small. This is called the water level. It essentially smoothes the signal and prevents enhancing noise.
+Additionally we have to remove the instrument response, which is another unique factor 
+As an additional measure we apply a water level when removing the instrument response from the signal directly before extracting the displacement all frequencies above 30Hz are deleted from the signal. This removes jittering in the data and smoothes the input.
+\begin{figure*}[h!]
+	\centering
+	\includegraphics[width=0.6\linewidth]{../pictures/Main/filters.jpg}
+	\caption{High-pass filter frequencies depending on magnitude, computed and plotted by \cite{munchmeyer2020low}}
+	\label{fig:filters}
+\end{figure*}
 \section{Detecting the earthquake}
 
 \section{Ground-truth algorithm}
