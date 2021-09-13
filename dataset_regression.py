@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-data = np.load("output.npy")
+data = np.load("outputfilters.npy")
 print(data.shape)
 pd = np.abs(data[:, 0])
 dist = data[:, 1]/1000
@@ -33,9 +33,9 @@ print("logDist", np.log10(dist),min(np.log10(dist)),max(np.log10(dist)))
 #plt.hist(mag, bins = 50)
 #plt.savefig("mag.png")
 plt.scatter(ma,np.log10(pd),c = np.log10(dist))
-a = 1.01 * np.log10(pd) + 0.74 * np.log10(50) + 5.47
-b= 1.01 * np.log10(pd) + 0.74 * np.log10(100) + 5.47
-c= 1.01 * np.log10(pd) + 0.74 * np.log10(200) + 5.47
+a = 0.89 * np.log10(pd) + 1.02 * np.log10(50) + 4.69
+b= 0.89 * np.log10(pd) + 1.02 * np.log10(150) + 4.69
+c= 0.89 * np.log10(pd) + 1.02 * np.log10(250) + 4.69
 print(a,b,c)
 plt.plot(a,np.log10(pd))
 plt.plot(b,np.log10(pd))
