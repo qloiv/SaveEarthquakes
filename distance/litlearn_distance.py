@@ -67,19 +67,18 @@ def learn(catalog_path, hdf5_path, model_path):
     # torch.save(network.state_dict(), os.path.join(model_path, path))
 
 
-def timespan_iteration(catalog_path, checkpoint_path, hdf5_path, timespan_array):
+def timespan_iteration(above, catalog_path, checkpoint_path, hdf5_path, timespan_array):
     for t in timespan_array:
         t = int(t)
-        predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, t)
+        predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, t)
 
 
-def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
+def predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, timespan=None):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     split_key = "test_files"
     file_path = hdf5_path
     h5data = h5py.File(file_path, "r").get(split_key)
@@ -186,166 +185,6 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
             swaves = True
         else:
             swaves = False
-    # if learn_s.shape == 0:
-    #    rsmes = np.round(mean_squared_error(np.array(true_s) / 1000, (pred_s) / 1000, squared=False),
-    #                     decimals=2)
-    # else:
-    #    pred_s = np.zeros((0))
-    #    rsmes = -1
-
-    # # Plot with differentiation between S and no S Arrivals
-    # fig, axs = plt.subplots(1)
-    # axs.tick_params(axis="both", labelsize=8)
-    # fig.suptitle(
-    #     "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival",
-    #     fontsize=10,
-    # )
-    #
-    # x = np.array(true) / 1000
-    # y = pred / 1000
-    # xy = np.vstack([x, y])
-    # z = gaussian_kde(xy)(xy)
-    # # Sort the points by density, so that the densest points are plotted last
-    # idx = z.argsort()
-    # cm = plt.cm.get_cmap("spring")
-    # x, y, z = x[idx], y[idx], z[idx]
-    # z *= len(x) / z.max()
-    # a = axs.scatter(
-    #     x,
-    #     y,
-    #     c=z,
-    #     cmap=cm,
-    #     marker="D",
-    #     s=0.3,
-    #     alpha=0.3,
-    #     lw=0,
-    #     # label="Recordings without a S-Wave arrival",
-    # )
-    #
-    # x = np.array(true_s) / 1000
-    # y = pred_s / 1000
-    # xy = np.vstack([x, y])
-    # z = gaussian_kde(xy)(xy)
-    # idx = z.argsort()
-    # x, y, z = x[idx], y[idx], z[idx]
-    #
-    # cm = plt.cm.get_cmap("winter")
-    # z *= len(x) / z.max()
-    # b = axs.scatter(
-    #     x,
-    #     y,
-    #     c=z,
-    #     cmap=cm,
-    #     marker="s",
-    #     s=0.3,
-    #     alpha=0.3,
-    #     lw=0,
-    #     # label="Recordings in which there is a S-Wave arrival",
-    # )
-    # if timespan is not None:
-    #     axs.legend(
-    #         title=str(timespan) + " seconds after P-Wave arrival",
-    #         loc="best",
-    #         fontsize=7,
-    #         title_fontsize=8,
-    #     )
-    # # else:
-    # # axs.legend(loc=0)
-    # axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
-    # plt.axis("square")
-    # plt.xlabel("True distance[km]", fontsize=8)
-    # plt.ylabel("Predicted distance[km]", fontsize=8)
-    # ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # # ac.ax.shrink = 0.8
-    # ac.ax.tick_params(labelsize=8)
-    # ac.ax.set_ylabel('No S-Waves present', fontsize=8)
-    # bc = fig.colorbar(b)
-    # bc.ax.tick_params(labelsize=8)
-    # bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
-    # if timespan is not None:
-    #     fig.savefig(
-    #         "Distance:PredVSTrue_" + str(timespan).replace(".", "_") + "sec", dpi=600
-    #     )
-    # else:
-    #     fig.savefig("Distance:PredVSTrue", dpi=600)
-    #     # Plot with differentiation between S and no S Arrivals
-    # fig, axs = plt.subplots(1)
-    # axs.tick_params(axis="both", labelsize=8)
-    # fig.suptitle(
-    #     "Predicted and true distance values, \ndifferentiating between recordings with and without a S-Wave arrival",
-    #     fontsize=10,
-    # )
-    #
-    # x = np.array(true) / 1000
-    # y = pred / 1000
-    # xy = np.vstack([x, y])
-    # z = gaussian_kde(xy)(xy)
-    # # Sort the points by density, so that the densest points are plotted last
-    # idx = z.argsort()
-    # cm = plt.cm.get_cmap("cividis")
-    # x, y, z = x[idx], y[idx], z[idx]
-    # z *= len(x) / z.max()
-    #
-    # a = axs.scatter(
-    #     x,
-    #     y,
-    #     c=z,
-    #     cmap=cm,
-    #     s=0.5,
-    #     marker="s",
-    #     lw=0,
-    #     alpha=0.2,
-    #     # label="Recordings without a S-Wave arrival",
-    # )
-    #
-    # x = np.array(true_s) / 1000
-    # y = pred_s / 1000
-    # xy = np.vstack([x, y])
-    # z = gaussian_kde(xy)(xy)
-    # idx = z.argsort()
-    # x, y, z = x[idx], y[idx], z[idx]
-    #
-    # cm = plt.cm.get_cmap("spring")
-    # z *= len(x) / z.max()
-    #
-    # b = axs.scatter(
-    #     x,
-    #     y,
-    #     s=0.5,
-    #     c=z,
-    #     cmap=cm,
-    #     marker="D",
-    #     lw=0,
-    #     alpha=0.2,
-    #     # label="Recordings in which there is a S-Wave arrival",
-    # )
-    # if timespan is not None:
-    #     axs.legend(
-    #         title=str(timespan) + " seconds after P-Wave arrival",
-    #         loc="best",
-    #         fontsize=7,
-    #         title_fontsize=8,
-    #     )
-    # else:
-    #     axs.legend(loc=0)
-    # axs.axline((0, 0), (100, 100), linewidth=0.3, color="black")
-    # plt.axis("square")
-    # plt.xlabel("True distance[km]", fontsize=8)
-    # plt.ylabel("Predicted distance[km]", fontsize=8)
-    # ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # # ac.ax.shrink = 0.8
-    # ac.ax.tick_params(labelsize=8)
-    # ac.ax.set_ylabel('No S-Waves present', fontsize=8)
-    # bc = fig.colorbar(b)
-    # bc.ax.tick_params(labelsize=8)
-    # bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
-    # if timespan is not None:
-    #     fig.savefig(
-    #         "Distance:PredVSTrue2_" + str(timespan).replace(".", "_") + "sec", dpi=600
-    #     )
-    # else:
-    #     fig.savefig("Distance:PredVSTrue2", dpi=600)
-    #     # Plot with differentiation between S and no S Arrivals
 
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
@@ -379,8 +218,11 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         lw=0,
         alpha=0.5,
     )
-    if swaves is True:
-                
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+    if swaves is True and len(true_s) != 1:
         x = np.array(true_s) / 1000
         y = pred_s / 1000
         xy = np.vstack([x, y])
@@ -389,7 +231,7 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         x, y, z = x[idx], y[idx], z[idx]
 
         cm = plt.cm.get_cmap("cividis")
-        z *= len(x) /z.max()
+        z *= len(x) / z.max()
 
         b = axs.scatter(
             x,
@@ -415,25 +257,22 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
     plt.axis("square")
     plt.xlabel("True distance[km]", fontsize=8)
     plt.ylabel("Predicted distance[km]", fontsize=8)
-    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # ac.ax.shrink = 0.8
-    ac.ax.tick_params(labelsize=8)
-    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+
     
     if timespan is not None:
         fig.savefig(
             "Distance:PredVSTrue_" +str(above)+"_"+ str(timespan).replace(".", "_") + "sec", dpi=600
         )
     else:
-        fig.savefig("Distance:PredVSTrue", dpi=600)
+        fig.savefig("Distance:PredVSTrue_" + str(above), dpi=600)
     # Plot without differentiation
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
-    fig.suptitle("Predicted and true distance values")
+    fig.suptitle("Predicted and true distance values", fontsize=10)
     # " \nRSME = " + str(
     #    rsme), fontsize=10)
     if above is True:
-            fig.suptitle("Predicted and true distance values for magnitude values above 5")
+        fig.suptitle("Predicted and true distance values for magnitude values above 5", fontsize=10)
 
     if swaves is True: 
         x = np.array(true + true_s) / 1000
@@ -456,7 +295,10 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
             lw=0,
             alpha=0.5,
         )
-
+        ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+        # ac.ax.shrink = 0.8
+        ac.ax.tick_params(labelsize=8)
+        ac.ax.set_ylabel('No S-Waves present', fontsize=8)
         if timespan is not None:
             axs.legend(
                 title=str(timespan) + " seconds after P-Wave arrival",
@@ -468,26 +310,22 @@ def predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, timespan=None):
         plt.axis("square")
         plt.xlabel("True distance[km]", fontsize=8)
         plt.ylabel("Predicted distance[km]", fontsize=8)
-        ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-        # ac.ax.shrink = 0.8
-        ac.ax.tick_params(labelsize=8)
-        ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+
         if timespan is not None:
             fig.savefig(
                 "Distance:PredVSTrue_simple_" +str(above)+"_"+ str(timespan).replace(".", "_") + "sec",
                 dpi=600,
             )
         else:
-            fig.savefig("Distance:PredVSTrue_simple", dpi=600)
+            fig.savefig("Distance:PredVSTrue_simple_" + str(above) + "_", dpi=600)
 
 
-def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
+def rsme_timespan(above, catalog_path, checkpoint_path, hdf5_path):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     s_times = test_catalog["S_PICK"]
     p_times = test_catalog["P_PICK"]
     split_key = "test_files"
@@ -647,14 +485,12 @@ def rsme_timespan(catalog_path, checkpoint_path, hdf5_path):
     fig.savefig("Distance:RSME_"+str(above), dpi=600)
 
 
-def test_one(catalog_path, checkpoint_path, hdf5_path):
-
+def test_one(above, catalog_path, checkpoint_path, hdf5_path):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     idx = randrange(0, len(test_catalog))
     event, station, distance, p, s = test_catalog.iloc[idx][
         ["EVENT", "STATION", "DIST", "P_PICK", "S_PICK"]
@@ -834,14 +670,13 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     # h5data.close()
 
 
-def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add,
+def compute_magnitude(above, catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add,
                       filter_path):
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog = test_catalog[test_catalog["MA"] >= 5]  # TODO change back
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     # test_catalog = test_catalog[test_catalog["MA"] >= 6]
     # test_catalog = test_catalog[test_catalog["DIST"] <=200000]
     idx = randrange(0, len(test_catalog))
@@ -1100,23 +935,24 @@ def compute_magnitude(catalog_path, checkpoint_path, hdf5_path, inventory, wavef
     # h5data.close()
 
 
-def mag_timespan_iteration(catalog_path, checkpoint_path, hdf5_path, inventory, wp, wpa, timespan_array):
+def mag_timespan_iteration(above, catalog_path, checkpoint_path, hdf5_path, inventory, wp, wpa, timespan_array,
+                           filter_path):
     for t in timespan_array:
         t = int(t)
-        mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, wp, wpa, t)
+        mag_predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, inventory, wp, wpa, filter_path, t)
 
 
-def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add,
+def mag_predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, inventory, waveform_path, waveform_path_add,
+                          filter_path,
                           timespan=None):
     # load catalog
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     # test_catalog = test_catalog[test_catalog["MA"] >= 6]
     # test_catalog = test_catalog[test_catalog["DIST"] <=200000]
-    print(max(test_catalog["MA" ]))
+    print(max(test_catalog["MA"]))
     # load scaler
     dist = np.array([1, 600000])
     print(max(test_catalog["DIST"]))
@@ -1212,10 +1048,14 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
             inv_selection = inv.select(station=station, channel="HHZ")
 
             new_stream_w30 = o_station_stream.copy()
-            
+
             new_stream_w30[0].data = obspy_detrend(new_stream_w30[0].data)
 
             # set high pass filter
+            filters = pd.read_csv(filter_path)
+            filters = filters[filters["EVENT"] == event]
+            filters = filters[filters["STATION"] == station]
+            filterfreq = np.array(filters["HIGHPASS_FREQ"])[0]
             filt = signal.butter(2, filterfreq, btype="highpass", fs=100, output="sos")
 
             new_stream_w30[0].data = signal.sosfilt(filt, new_stream_w30[0].data, axis=-1).astype(np.float32)
@@ -1262,101 +1102,21 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
             var_s = scaler.inverse_transform(var_s.reshape(-1, 1)).squeeze()
             sig_s = np.sqrt(var_s)
             swaves=True
-            
-    #mag = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(np.append(pred, pred_s) / 1000) + 5.47
-    #assert mag>0
-    #print(mag[mag<0],np.array(peak+peak_s)[mag<0],np.append(pred,pred_s)[mag<0])
-    #magmax = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(
-    #    (np.append(pred, pred_s) + np.append(sig, sig_s)) / 1000) + 5.47
-    #magmin = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(
-    #    (np.append(pred, pred_s) - np.append(sig, sig_s)) / 1000) + 5.47
-
-    # # Plot with differentiation between S and no S Arrivals
-    # fig, axs = plt.subplots(1)
-    # axs.tick_params(axis="both", labelsize=8)
-    # fig.suptitle(
-    #     "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival",
-    #     fontsize=10,
-    # )
-    #
-    # x = np.array(magnitude)
-    # y = 0.44 * np.log(peak) + 0.32 * np.log((pred) / 1000) + 5.47
-    # xy = np.vstack([x, y])
-    # z = gaussian_kde(xy)(xy)
-    # # Sort the points by density, so that the densest points are plotted last
-    # idx = z.argsort()
-    # cm = plt.cm.get_cmap("Blues")
-    # x, y, z = x[idx], y[idx], z[idx]
-    # a = axs.scatter(
-    #     x,
-    #     y,
-    #     c=z,
-    #     cmap=cm,
-    #     s=0.2,
-    #     marker="s",
-    #     lw=0,
-    #     alpha=3,
-    #     # label="Recordings without a S-Wave arrival",
-    # )
-    #
-    # x = np.array(magnitude_s)
-    # y = 0.44 * np.log(peak_s) + 0.32 * np.log((pred_s) / 1000) + 5.47
-    # xy = np.vstack([x, y])
-    # z = gaussian_kde(xy)(xy)
-    # idx = z.argsort()
-    # x, y, z = x[idx], y[idx], z[idx]
-    #
-    # cm = plt.cm.get_cmap("Oranges")
-    # z *= len(x) / z.max()
-    #
-    # b = axs.scatter(
-    #     x,
-    #     y,
-    #     s=0.2,
-    #     c=z,
-    #     cmap=cm,
-    #     marker="D",
-    #     lw=0,
-    #     alpha=3,
-    #     # label="Recordings in which there is a S-Wave arrival",
-    # )
-    # if timespan is not None:
-    #     axs.legend(
-    #         title=str(timespan) + " seconds after P-Wave arrival",
-    #         loc="best",
-    #         fontsize=7,
-    #         title_fontsize=8,
-    #     )
-    # axs.axline((0, 0), (9, 9), linewidth=0.3, color="black")
-    # plt.axis("square")
-    # plt.xlabel("True magnitude", fontsize=8)
-    # plt.ylabel("Predicted magnitude", fontsize=8)
-    # ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # # ac.ax.shrink = 0.8
-    # ac.ax.tick_params(labelsize=8)
-    # ac.ax.set_ylabel('No S-Waves present', fontsize=8)
-    # bc = fig.colorbar(b)
-    # bc.ax.tick_params(labelsize=8)
-    # bc.ax.set_ylabel('S-Waves arrived', fontsize=8)
-    # if timespan is not None:
-    #     fig.savefig(
-    #         "SelfMagnitude:PredVSTrue2_" + str(timespan).replace(".", "_") + "sec", dpi=600
-    #     )
-    # else:
-    #     fig.savefig("SelfMagnitude:PredVSTrue2", dpi=600)
 
     # Plot with differentiation between S and no S Arrivals
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
-    fig.suptitle(
-        "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival",
-        fontsize=10,
-    )
+
     if above is True:
         fig.suptitle(
-        "Predicted and true magnitude values for magnitudes above 5, \ndifferentiating between recordings with and without a S-Wave arrival",
-        fontsize=10,
-    )    
+            "Predicted and true magnitude values for magnitudes above 5, \ndifferentiating between recordings with and without a S-Wave arrival",
+            fontsize=10,
+        )
+    else:
+        fig.suptitle(
+            "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival",
+            fontsize=10,
+        )
     x = np.array(magnitude)
     y = 0.44 * np.log(peak) + 0.32 * np.log((pred) / 1000) + 5.47
     xy = np.vstack([x, y])
@@ -1377,8 +1137,11 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
         alpha=0.5,
         # label="Recordings without a S-Wave arrival",
     )
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
     if swaves is True:
-        
         x = np.array(magnitude_s)
         y = 0.44 * np.log(peak_s) + 0.32 * np.log((pred_s) / 1000) + 5.47
         xy = np.vstack([x, y])
@@ -1415,10 +1178,7 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     axs.axline((-1, -1), (9, 9), linewidth=0.5, color="black")
     plt.xlabel("True magnitude", fontsize=8)
     plt.ylabel("Predicted magnitude", fontsize=8)
-    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # ac.ax.shrink = 0.8
-    ac.ax.tick_params(labelsize=8)
-    ac.ax.set_ylabel('No S-Waves present', fontsize=8)
+
     
     plt.axis("square")
 
@@ -1432,13 +1192,15 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
     # Plot without differentiation
     fig, axs = plt.subplots(1)
     axs.tick_params(axis="both", labelsize=8)
-    fig.suptitle("Predicted and true magnitude values", fontsize=10)
+
     # " \nRSME = " + str(
     #    rsme), fontsize=10)
     if above is True:
         fig.suptitle("Predicted and true magnitude values for magnitudes above 5", fontsize=10)
+    else:
+        fig.suptitle("Predicted and true magnitude values", fontsize=10)
     if swaves is True:
-        
+
         x = np.array(magnitude + magnitude_s)
         y = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(np.append(pred, pred_s) / 1000) + 5.47
     else:
@@ -1462,7 +1224,11 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
         lw=0,
         alpha=0.5,
     )
-
+    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
+    # ac.ax.shrink = 0.8
+    ac.ax.tick_params(labelsize=8)
+    axs.axline((-1, -1), (9, 9), linewidth=0.5, color="black")
+    ac.ax.set_ylabel('Number of points', fontsize=8)
     if timespan is not None:
         axs.legend(
             title=str(timespan) + " seconds after P-Wave arrival",
@@ -1470,11 +1236,7 @@ def mag_predtrue_timespan(catalog_path, checkpoint_path, hdf5_path, inventory, w
             fontsize=8,
             title_fontsize=8,
         )
-    ac = fig.colorbar(a, fraction=0.046, pad=0.04)
-    # ac.ax.shrink = 0.8
-    ac.ax.tick_params(labelsize=8)
-    axs.axline((-1, -1), (9, 9), linewidth=0.5, color="black")
-    ac.ax.set_ylabel('Number of points', fontsize=8)
+
     plt.axis("square")
     plt.xlabel("True magnitude", fontsize=8)
     plt.ylabel("Predicted magnitude", fontsize=8)
@@ -1501,15 +1263,14 @@ def test(catalog_path, hdf5_path, checkpoint_path, hparams_file):
     trainer.test(model, datamodule=dm)
 
 
-def predict(
-        catalog_path, hdf5_path, checkpoint_path
-):  # TODO put sequence length into variable
+def predict(above,
+            catalog_path, hdf5_path, checkpoint_path
+            ):  # TODO put sequence length into variable
     # load catalog with random test event
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
-    above = True
     if above is True:
-        test_catalog=test_catalog[test_catalog["MA"]>=5]
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
     idx = randrange(0, len(test_catalog))
     print(idx)
     event, station, distance, p, s = test_catalog.iloc[idx][
@@ -1691,15 +1452,16 @@ def predict(
 
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
-# predict(cp, hp, chp)
-# test_one(cp,chp,hp)
-# compute_magnitude(cp, chp, hp, ip, wp, wpa, fp)
-# mag_predtrue_timespan(cp, chp, hp, ip, wp, wpa)
-# rsme_timespan(cp, chp, hp)
-# predtrue_timespan(cp, chp, hp)
-# timespan_iteration(cp, chp, hp, timespan_array=[2,4,8,16])
+# predict(True, cp, hp, chp)
+# test_one(False,cp,chp,hp)
+# compute_magnitude(False, cp, chp, hp, ip, wp, wpa, fp)
+# mag_predtrue_timespan(True,cp, chp, hp, ip, wp, wpa, filter_path = fp)
+# rsme_timespan(True, cp, chp, hp)
+# predtrue_timespan(False, cp, chp, hp)
+# timespan_iteration(False, cp, chp, hp, timespan_array=[2,4,8,16])
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
-# mag_timespan_iteration(catalog_path=cp,timespan_array=[2,4,8,16],hdf5_path=hp,wp=wp,wpa=wpa,checkpoint_path=chp,inventory=ip)
+mag_timespan_iteration(False, catalog_path=cp, timespan_array=[2, 4, 8, 16], hdf5_path=hp, wp=wp, wpa=wpa,
+                       checkpoint_path=chp, inventory=ip, filter_path=fp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
@@ -1710,34 +1472,39 @@ if __name__ == "__main__":
     parser.add_argument("--hparams_file", type=str)
     parser.add_argument("--timespan", type=list)
     parser.add_argument("--inventory", type=str)
-    parser.add_argument("--waveform_path",type = str)
-    parser.add_argument("--waveform_path_add",type = str)
+    parser.add_argument("--waveform_path", type=str)
+    parser.add_argument("--waveform_path_add", type=str)
+    parser.add_argument("--above", type=str)
+    parser.add_argument("--filter_path", type=str)
+
     args = parser.parse_args()
     action = args.action
     if action == "test_one":
-        test_one(
-            catalog_path=args.catalog_path,
-            checkpoint_path=args.checkpoint_path,
-            hdf5_path=args.hdf5_path,
-        )
+        test_one(above=args.above,
+                 catalog_path=args.catalog_path,
+                 checkpoint_path=args.checkpoint_path,
+                 hdf5_path=args.hdf5_path,
+                 )
     if action == "compute_mag":
-        compute_magnitude(
-            catalog_path=args.catalog_path,
-            checkpoint_path=args.checkpoint_path,
-            hdf5_path=args.hdf5_path,
-            inventory = args.inventory,
-            waveform_path = args.waveform_path,
-            waveform_path_add = args.waveform_path_add
-        )   
+        compute_magnitude(above=args.above,
+                          catalog_path=args.catalog_path,
+                          checkpoint_path=args.checkpoint_path,
+                          hdf5_path=args.hdf5_path,
+                          inventory=args.inventory,
+                          waveform_path=args.waveform_path,
+                          waveform_path_add=args.waveform_path_add,
+                          filter_path=args.filter_path
+                          )
     if action == "predtrue_mag":
-        mag_predtrue_timespan(
-            catalog_path=args.catalog_path,
-            checkpoint_path=args.checkpoint_path,
-            hdf5_path=args.hdf5_path,
-            inventory = args.inventory,
-            waveform_path = args.waveform_path,
-            waveform_path_add = args.waveform_path_add
-        )  
+        mag_predtrue_timespan(above=args.above,
+                              catalog_path=args.catalog_path,
+                              checkpoint_path=args.checkpoint_path,
+                              hdf5_path=args.hdf5_path,
+                              inventory=args.inventory,
+                              filter_path=args.filter_path,
+                              waveform_path=args.waveform_path,
+                              waveform_path_add=args.waveform_path_add
+                              )
     if action == "learn":
         learn(
             catalog_path=args.catalog_path,
@@ -1752,23 +1519,23 @@ if __name__ == "__main__":
             hparams_file=args.hparams_file,
         )
     if action == "predict":
-        predict(
-            catalog_path=args.catalog_path,
-            hdf5_path=args.hdf5_path,
-            checkpoint_path=args.checkpoint_path,
-        )
+        predict(above=args.above,
+                catalog_path=args.catalog_path,
+                hdf5_path=args.hdf5_path,
+                checkpoint_path=args.checkpoint_path,
+                )
     if action == "predtrue":
-        predtrue_timespan(
-            catalog_path=args.catalog_path,
-            hdf5_path=args.hdf5_path,
-            checkpoint_path=args.checkpoint_path,
-        )
+        predtrue_timespan(above=args.above,
+                          catalog_path=args.catalog_path,
+                          hdf5_path=args.hdf5_path,
+                          checkpoint_path=args.checkpoint_path,
+                          )
     if action == "rsme":
-        rsme_timespan(
-            catalog_path=args.catalog_path,
-            hdf5_path=args.hdf5_path,
-            checkpoint_path=args.checkpoint_path,
-        )
+        rsme_timespan(above=args.above,
+                      catalog_path=args.catalog_path,
+                      hdf5_path=args.hdf5_path,
+                      checkpoint_path=args.checkpoint_path,
+                      )
     if action == "timespan":
         timespan_iteration(
             catalog_path=args.catalog_path,
