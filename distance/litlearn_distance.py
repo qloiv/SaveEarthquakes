@@ -25,23 +25,24 @@ from datasets_distance import obspy_detrend, normalize_stream
 from litdatamodule_distance import LitDataModule
 from litnetwork_distance import LitNetwork
 
-cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
-wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-wpa = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
-hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
-mp = "/home/viola/WS2021/Code/Models"
-chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
-hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
-ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
-fp = "/home/viola/WS2021/Jannes Daten/highpass_filters.csv"
+#cp = "/home/viola/WS2021/Code/Daten/Chile_small/new_catalog_sensitivity.csv"
+#wp = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+#wpa = "/home/viola/WS2021/Code/Daten/Chile_small/mseedJan07/"
+#hp = "/home/viola/WS2021/Code/Daten/Chile_small/hdf5_dataset_sensitivity.h5"
+#mp = "/home/viola/WS2021/Code/Models"
+#chp = "/home/viola/WS2021/Code/tb_logs/distance/version_47/checkpoints/epoch=19-step=319.ckpt"
+#hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
+#ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
+#fp = "/home/viola/WS2021/Jannes Daten/highpass_filters.csv"
 
 
-# cp = "../../new_catalogue_sensitivity.csv"
-# wp = "../../../data/earthquake/waveforms_long_full/"
-# wpa ="../../../data/earthquake/waveforms_long_additional/"
-# hp = "../../new_h5data_sensitivity.h5"
-# chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
-# ip = "../../inventory.xml"
+cp = "../../new_catalogue_sensitivity.csv"
+wp = "../../../data/earthquake/waveforms_long_full/"
+wpa ="../../../data/earthquake/waveforms_long_additional/"
+hp = "../../new_h5data_sensitivity.h5"
+chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
+ip = "../../inventory.xml"
+fp = "../../highpass_filters.csv"
 
 # checkpoint_path = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/checkpoints/epoch=33-step=3093.ckpt",
 # hparams_file = "/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/my_model/version_8/hparams.yaml",
@@ -779,7 +780,8 @@ def compute_magnitude(above, catalog_path, checkpoint_path, hdf5_path, inventory
     filters = filters[filters["EVENT"] == event]
     filters = filters[filters["STATION"] == station]
     filterfreq = np.array(filters["HIGHPASS_FREQ"])[0]
-    filt = signal.butter(2, filterfreq, btype="highpass", fs=100, output="sos")
+    if filterfreq != 0:
+        filt = signal.butter(2, filterfreq, btype="highpass", fs=100, output="sos")
 
     new_stream_w30[0].data = signal.sosfilt(filt, new_stream_w30[0].data, axis=-1).astype(np.float32)
 
@@ -791,17 +793,18 @@ def compute_magnitude(above, catalog_path, checkpoint_path, hdf5_path, inventory
     # disp_w30.plot()
     peakdisp = 100 * np.max(np.abs(disp_w30))  # already returns absolute maximum amplitude
     print("pd", peakdisp, "dist", r_learned / 1000)
-    mag = 0.44 * np.log(peakdisp) + 0.32 * np.log(r_learned / 1000) + 5.47
+
+    mag = 0.89 * np.log10(peakdisp) + 1.02 * np.log10(r_learned / 1000) + 4.63
     if mag < 0:
         print("mag smaller than zero",mag, peakdisp, r_learned)
-    magmax = 0.44 * np.log(peakdisp) + 0.32 * np.log((r_learned + r_sigma) / 1000) + 5.47
-    magmin = 0.44 * np.log(peakdisp) + 0.32 * np.log((r_learned - r_sigma) / 1000) + 5.47
+    magmax = 0.89 * np.log10(peakdisp) + 1.02 * np.log10((r_learned + r_sigma) / 1000) + 4.63
+    magmin = 0.89 * np.log10(peakdisp) + 1.02 * np.log10((r_learned - r_sigma) / 1000) + 4.63
     print("pred. mag vs real mag", mag, ma)
     print("pred.mag for +sigma", magmax)
     print("pred.mag for -sigma", magmin)
-    kmag = 1.23 * np.log(peakdisp) + 1.38 * np.log(r_learned / 1000) + 5.39
-    kmagmax = 1.23 * np.log(peakdisp) + 1.38 * np.log(r_learned +r_sigma/ 1000) + 5.39
-    kmagmin = 1.23 * np.log(peakdisp) + 1.38 * np.log(r_learned -r_sigma/ 1000) + 5.39
+    kmag = 1.23 * np.log10(peakdisp) + 1.38 * np.log10(r_learned / 1000) + 5.39
+    kmagmax = 1.23 * np.log10(peakdisp) + 1.38 * np.log10(r_learned +r_sigma/ 1000) + 5.39
+    kmagmin = 1.23 * np.log10(peakdisp) + 1.38 * np.log10(r_learned -r_sigma/ 1000) + 5.39
     print("ka:pred. mag vs real mag", mag, ma)
     print("ka:pred.mag for +sigma", magmax)
     print("ka:pred.mag for -sigma", magmin)
@@ -1056,7 +1059,8 @@ def mag_predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, inven
             filters = filters[filters["EVENT"] == event]
             filters = filters[filters["STATION"] == station]
             filterfreq = np.array(filters["HIGHPASS_FREQ"])[0]
-            filt = signal.butter(2, filterfreq, btype="highpass", fs=100, output="sos")
+            if filterfreq != 0:
+                filt = signal.butter(2, filterfreq, btype="highpass", fs=100, output="sos")
 
             new_stream_w30[0].data = signal.sosfilt(filt, new_stream_w30[0].data, axis=-1).astype(np.float32)
 
@@ -1112,13 +1116,18 @@ def mag_predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, inven
             "Predicted and true magnitude values for magnitudes above 5, \ndifferentiating between recordings with and without a S-Wave arrival",
             fontsize=10,
         )
+
     else:
         fig.suptitle(
             "Predicted and true magnitude values, \ndifferentiating between recordings with and without a S-Wave arrival",
             fontsize=10,
         )
+        axs.set_xlim(-1,9)
+        axs.set_ylim(-1,9)
     x = np.array(magnitude)
-    y = 0.44 * np.log(peak) + 0.32 * np.log((pred) / 1000) + 5.47
+    print(peak)
+    print(pred)
+    y = 0.89 * np.log10(peak) + 1.02 * np.log10((pred) / 1000) + 4.63
     xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
@@ -1143,7 +1152,7 @@ def mag_predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, inven
     ac.ax.set_ylabel('No S-Waves present', fontsize=8)
     if swaves is True:
         x = np.array(magnitude_s)
-        y = 0.44 * np.log(peak_s) + 0.32 * np.log((pred_s) / 1000) + 5.47
+        y = 0.89 * np.log10(peak_s) + 1.02 * np.log10((pred_s) / 1000) + 4.63
         xy = np.vstack([x, y])
         z = gaussian_kde(xy)(xy)
 
@@ -1197,15 +1206,18 @@ def mag_predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, inven
     #    rsme), fontsize=10)
     if above is True:
         fig.suptitle("Predicted and true magnitude values for magnitudes above 5", fontsize=10)
+
     else:
         fig.suptitle("Predicted and true magnitude values", fontsize=10)
+        axs.set_xlim(-1,9)
+        axs.set_ylim(-1,9)
     if swaves is True:
 
         x = np.array(magnitude + magnitude_s)
-        y = 0.44 * np.log(peak + peak_s) + 0.32 * np.log(np.append(pred, pred_s) / 1000) + 5.47
+        y = 0.89 * np.log10(peak + peak_s) + 1.02 * np.log10(np.append(pred, pred_s) / 1000) + 4.63
     else:
         x = np.array(magnitude)
-        y = 0.44 * np.log(peak) + 0.32 * np.log(pred / 1000) + 5.47        
+        y = 0.89 * np.log10(peak) + 1.02 * np.log10(pred / 1000) + 4.63        
     xy = np.vstack([x, y])
     z = gaussian_kde(xy)(xy)
     # Sort the points by density, so that the densest points are plotted last
@@ -1452,16 +1464,18 @@ def predict(above,
 
 
 # learn(catalog_path=cp, hdf5_path=hp, model_path=mp)
-# predict(True, cp, hp, chp)
+#predict(True, cp, hp, chp)
 # test_one(False,cp,chp,hp)
 # compute_magnitude(False, cp, chp, hp, ip, wp, wpa, fp)
-# mag_predtrue_timespan(True,cp, chp, hp, ip, wp, wpa, filter_path = fp)
-# rsme_timespan(True, cp, chp, hp)
-# predtrue_timespan(False, cp, chp, hp)
+mag_predtrue_timespan(True,cp, chp, hp, ip, wp, wpa, filter_path = fp)
+#rsme_timespan(True, cp, chp, hp)
+#predtrue_timespan(False, cp, chp, hp)
 # timespan_iteration(False, cp, chp, hp, timespan_array=[2,4,8,16])
 # test(catalog_path=cp,hdf5_path=hp, checkpoint_path=chp, hparams_file=hf)
 mag_timespan_iteration(False, catalog_path=cp, timespan_array=[2, 4, 8, 16], hdf5_path=hp, wp=wp, wpa=wpa,
-                       checkpoint_path=chp, inventory=ip, filter_path=fp)
+                      checkpoint_path=chp, inventory=ip, filter_path=fp)
+mag_timespan_iteration(True, catalog_path=cp, timespan_array=[2, 4, 8, 16], hdf5_path=hp, wp=wp, wpa=wpa,
+                      checkpoint_path=chp, inventory=ip, filter_path=fp)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", type=str, required=True)
