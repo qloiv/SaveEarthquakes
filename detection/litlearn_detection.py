@@ -16,6 +16,8 @@ from matplotlib import ticker
 from obspy import UTCDateTime
 from pytorch_lightning.loggers import TensorBoardLogger
 from scipy import signal
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from tqdm import tqdm
 
 from datasets_detection import obspy_detrend, normalize_stream
 from litdatamodule_detection import LitDataModule
@@ -502,7 +504,7 @@ def test_one(catalog_path, checkpoint_path, hdf5_path):
     catalog = pd.read_csv(catalog_path)
     test_catalog = catalog[catalog["SPLIT"] == "TEST"]
     idx = randrange(0, len(test_catalog))
-    idx = 756
+    # idx = 756
     print(idx)
     event, station, p_pick = test_catalog.iloc[idx][["EVENT", "STATION", "P_PICK"]]
 
@@ -861,6 +863,132 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
                     annotation_clip=False, fontsize=6, rotation=90, va='bottom', ha='center')
     axs[1].set_title("Classification for every tenth of seconds", fontdict={"fontsize": 8})
     fig.savefig("DET:Prediction Plot" + datetime.now().strftime("%Y-%m-%d %H:%M"), dpi=600)
+
+
+def timespan_iteration(above, catalog_path, checkpoint_path, hdf5_path, timespan_array):
+    for t in timespan_array:
+        predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, t)
+
+
+def predtrue_timespan(above, catalog_path, checkpoint_path, hdf5_path, timespan=None):
+    # load catalog
+    catalog = pd.read_csv(catalog_path)
+    test_catalog = catalog[catalog["SPLIT"] == "TEST"]
+    if above is True:
+        test_catalog = test_catalog[test_catalog["MA"] >= 5]
+    split_key = "test_files"
+    file_path = hdf5_path
+    h5data = h5py.File(file_path, "r").get(split_key)
+
+    # load model
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+
+    # load model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = LitNetwork.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+    )
+    model.freeze()
+    model.to(device)
+
+    # list for storing mean and variance
+    learn = torch.zeros(1, device=device)
+    true = []
+    # preload filters
+    filt = signal.butter(2, 2, btype="highpass", fs=100, output="sos")
+    lfilt = signal.butter(2, 35, btype="lowpass", fs=100, output="sos")
+
+    # iterate through catalogue
+    with torch.no_grad():
+        for idx in tqdm(range(0, 2 * len(test_catalog))):
+            if idx >= len(test_catalog):  # noise example
+                idx = idx % len(
+                    test_catalog
+                )  # get the same
+            event, station, p, s = test_catalog.iloc[idx][
+                ["EVENT", "STATION", "P_PICK", "S_PICK"]
+            ]
+
+            # load subsequent waveform
+            raw_waveform = np.array(h5data.get(event + "/" + station))
+            seq_len = 4 * 100  # *sampling rate 20 sec window
+            p_pick_array = 3000
+            if timespan is None:
+                random_point = np.random.randint(seq_len)
+            else:
+                random_point = int(seq_len - timespan * 100)
+            waveform = raw_waveform[
+                       :, p_pick_array - random_point: p_pick_array + (seq_len - random_point)
+                       ]
+            # modify waveform for input
+            d0 = obspy_detrend(waveform[0])
+            d1 = obspy_detrend(waveform[1])
+            d2 = obspy_detrend(waveform[2])
+
+            f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+            f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+            f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+            g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+            g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+            g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+            station_stream = np.stack((g0, g1, g2))
+            station_stream, _ = normalize_stream(station_stream)
+            station_stream = torch.from_numpy(station_stream[None])
+            station_stream = station_stream.to(device)
+            out = model(station_stream)
+            _, predicted = torch.max(out, 1)
+
+            learn = torch.cat((learn, predicted), 0)
+            # var = torch.cat((var, variance), 0)
+            true = true + [1]
+
+            # load subsequent noise waveform
+            raw_waveform = np.array(h5data.get(event + "/" + station))
+            seq_len = 4 * 100  # *sampling rate 20 sec window
+            p_pick_array = 3000
+            waveform = raw_waveform[
+                       :, p_pick_array - 500: p_pick_array - 100
+                       ]
+            # modify waveform for input
+            d0 = obspy_detrend(waveform[0])
+            d1 = obspy_detrend(waveform[1])
+            d2 = obspy_detrend(waveform[2])
+
+            f0 = signal.sosfilt(filt, d0, axis=-1).astype(np.float32)
+            f1 = signal.sosfilt(filt, d1, axis=-1).astype(np.float32)
+            f2 = signal.sosfilt(filt, d2, axis=-1).astype(np.float32)
+
+            g0 = signal.sosfilt(lfilt, f0, axis=-1).astype(np.float32)
+            g1 = signal.sosfilt(lfilt, f1, axis=-1).astype(np.float32)
+            g2 = signal.sosfilt(lfilt, f2, axis=-1).astype(np.float32)
+
+            station_stream = np.stack((g0, g1, g2))
+            station_stream, _ = normalize_stream(station_stream)
+            station_stream = torch.from_numpy(station_stream[None])
+            station_stream = station_stream.to(device)
+            out = model(station_stream)
+            _, predicted = torch.max(out, 1)
+
+            learn = torch.cat((learn, predicted), 0)
+            # var = torch.cat((var, variance), 0)
+            true = true + [0]
+
+        learn = learn.cpu()
+
+        learn = np.delete(learn, 0)
+
+        pred = learn
+
+    cm = confusion_matrix(np.array(true), pred, normalize=None)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Noise", "P wave"])
+    disp.plot(cmap=plt.cm.Blues)
+    plt.savefig("Confusion Matrix", dpi=600)
+
     #
     # sequence_length = 4
     # data = pd.read_csv(catalog_path)
@@ -983,6 +1111,10 @@ def predict(catalog_path, checkpoint_path, hdf5_path):
 # o.plot(outfile = "obspy_plot_pick.png")
 #
 # plt.show()
+
+timespan_iteration(above=False, catalog_path=cp, hdf5_path=hp, checkpoint_path=
+"/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/detection/version_1/checkpoints/epoch=62-step=4031.ckpt",
+                   timespan_array=[1])
 # learn(cp, hp, mp)
 # predict(catalog_path=cp, hdf5_path=hp,
 # checkpoint_path="/home/viola/WS2021/Code/SaveEarthquakes/tb_logs/detection/version_1/checkpoints/epoch=62-step=4031.ckpt")
