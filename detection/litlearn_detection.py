@@ -31,11 +31,11 @@ hf = ("/home/viola/WS2021/Code/tb_logs/distance/version_47/hparams.yaml",)
 ip = "/home/viola/WS2021/Code/Daten/Chile_small/inventory.xml"
 
 
-# cp = "../../new_catalogue_sensitivity.csv"
+#cp = "../../new_catalogue_sensitivity.csv"
 # wp = "../../../data/earthquake/waveforms_long_full/"
 # wpa ="../../../data/earthquake/waveforms_long_additional/"
-# hp = "../../new_h5data_sensitivity.h5"
-# chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
+#hp = "../../new_h5data_sensitivity.h5"
+#chp = "../tb_logs/distance/version_67/checkpoints/epoch=94-step=55289.ckpt"
 # ip = "../../inventory.xml"
 
 
